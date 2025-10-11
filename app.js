@@ -4761,19 +4761,6 @@ app.get('/', requireAuth, (req, res) => {
         });
     }
     
-    function testCustomThreshold() {
-      const socInput = document.getElementById('customSOC');
-      const soc = socInput.value;
-      
-      if (!soc || soc < 0 || soc > 100) {
-        alert('❌ Please enter a valid SOC value between 0 and 100');
-        return;
-      }
-      
-      testThreshold(parseFloat(soc));
-      socInput.value = ''; // Clear input
-    }
-    
     function testChargerControl(action) {
       const statusDiv = document.getElementById('chargerTestStatus');
       statusDiv.innerHTML = '<span style="color: var(--warning-color);">⏳ Sending ' + action.toUpperCase() + ' command...</span>';
@@ -4979,17 +4966,15 @@ app.get('/', requireAuth, (req, res) => {
           <h3 style="color: var(--text-primary); font-size: 16px; margin-bottom: 15px;">🧪 Test Alert Thresholds</h3>
           <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 15px;">Simulate different battery SOC values to test alert notifications:</p>
           
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
             <button onclick="testThreshold(45)" class="btn-test" style="background: #f39c12;">⚠️ Test Low (45%)</button>
-            <button onclick="testThreshold(85)" class="btn-test" style="background: #27ae60;">✅ Test Recovery (85%)</button>
+            <button onclick="testThreshold(95)" class="btn-test" style="background: #27ae60;">✅ Test Recovery (95%)</button>
           </div>
           
-          <div style="display: flex; gap: 10px; align-items: center;">
-            <input type="number" id="customSOC" placeholder="Custom SOC %" min="0" max="100" style="flex: 1; padding: 10px; border: 2px solid var(--border-color); border-radius: 8px; background: var(--card-bg); color: var(--text-primary); font-size: 14px;">
-            <button onclick="testCustomThreshold()" class="btn-test" style="background: #3498db;">🎯 Test Custom</button>
-          </div>
-          
-          <p style="color: var(--text-muted); font-size: 11px; margin-top: 10px;">💡 Watch the terminal for alert messages and check your email.</p>
+          <p style="color: var(--text-muted); font-size: 11px; margin-top: 10px;">
+            <strong>Manual Override:</strong> These test buttons bypass ALL settings, thresholds, and cooldowns.
+            Watch the terminal for alert messages and check your email.
+          </p>
         </div>
         
         <div style="margin-top: 20px; padding-top: 20px; border-top: 2px solid var(--border-color);">
