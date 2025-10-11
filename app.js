@@ -2988,42 +2988,6 @@ app.get('/', requireAuth, (req, res) => {
       }
     }
     
-    .floating-save-btn {
-      position: fixed;
-      bottom: 30px;
-      right: 30px;
-      padding: 15px 30px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border: none;
-      border-radius: 50px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
-      z-index: 1001;
-      transition: all 0.3s ease;
-    }
-    
-    .floating-save-btn:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 12px 30px rgba(102, 126, 234, 0.6);
-      background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
-    }
-    
-    .floating-save-btn:active {
-      transform: translateY(-1px);
-    }
-    
-    @media (max-width: 768px) {
-      .floating-save-btn {
-        bottom: 20px;
-        right: 20px;
-        padding: 12px 24px;
-        font-size: 14px;
-      }
-    }
-    
     .close {
       color: #aaa;
       float: right;
@@ -5119,9 +5083,14 @@ app.get('/', requireAuth, (req, res) => {
             <small style="color: var(--text-muted); display: block; margin-top: 5px;">Send a test daily summary email now</small>
           </div>
         </div>
+        
+        <!-- Save All Settings Button -->
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid var(--border-color); text-align: center;">
+          <button onclick="saveSettings()" class="btn-primary" style="padding: 15px 40px; font-size: 16px; font-weight: 600;">💾 Save All Settings</button>
+          <p style="color: var(--text-muted); font-size: 12px; margin-top: 10px;">Saves all settings across all sections</p>
+        </div>
+        
       </div>
-      
-      <button onclick="saveSettings()" class="floating-save-btn">💾 Save All Settings</button>
       
     </div>
   </div>
