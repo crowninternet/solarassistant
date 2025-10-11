@@ -153,6 +153,12 @@ let alertSettings = {
     maxTemp: 110                   // Future: temperature safety cutoff
   },
   
+  // Peak Discharge Alert - Monitors discharge during peak sunlight hours
+  peakDischargeAlert: {
+    enabled: true,
+    durationMinutes: 30
+  },
+  
   // Daily Summary Reports
   dailySummary: {
     enabled: true,                 // Enable daily summary emails
@@ -184,6 +190,15 @@ let chargerState = {
 // Alert history for dashboard display (last 50 alerts)
 // RELATIONSHIP: Displayed in Settings modal on dashboard
 let alertHistory = [];
+
+// PEAK DISCHARGE MONITORING - Tracks battery discharge during peak sunlight hours
+// PURPOSE: Alert when battery is discharging during high solar production times
+let peakDischargeState = {
+  isDischarging: false,
+  dischargeStartTime: null,
+  alertSent: false,
+  lastAlertTime: null
+};
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DAILY STATISTICS TRACKING
@@ -908,6 +923,83 @@ async function controlBatteryCharger(soc) {
   }
 }
 
+// Monitor battery discharge during peak sunlight hours
+async function monitorPeakDischarge(batteryPower) {
+  if (!alertSettings.peakDischargeAlert?.enabled) return;
+  
+  const now = Date.now();
+  const batteryPowerValue = parseFloat(batteryPower);
+  if (isNaN(batteryPowerValue)) return;
+  
+  const inPeakHours = isWithinPeakHours();
+  const peakHours = getSeasonalPeakHours();
+  const isDischarging = batteryPowerValue < -50;
+  
+  if (inPeakHours && isDischarging) {
+    if (!peakDischargeState.isDischarging) {
+      peakDischargeState.isDischarging = true;
+      peakDischargeState.dischargeStartTime = now;
+      peakDischargeState.alertSent = false;
+      console.log('⚠️ PEAK DISCHARGE STARTED: Battery discharging during peak hours');
+    } else {
+      const dischargeDuration = now - peakDischargeState.dischargeStartTime;
+      const durationMinutes = Math.floor(dischargeDuration / 60000);
+      
+      if (durationMinutes >= 30 && !peakDischargeState.alertSent) {
+        peakDischargeState.alertSent = true;
+        peakDischargeState.lastAlertTime = now;
+        
+        const solarPower = parseFloat(cachedData['solar_assistant/inverter_1/pv_power/state']?.value) || 0;
+        const loadPower = parseFloat(cachedData['solar_assistant/inverter_1/load_power/state']?.value) || 0;
+        const batterySOC = parseFloat(cachedData['solar_assistant/total/battery_soc/state']?.value) || 0;
+        
+        const startTimeStr = new Date(peakDischargeState.dischargeStartTime).toLocaleTimeString();
+        const peakStartTime = formatHour(peakHours.startHour);
+        const peakEndTime = formatHour(peakHours.endHour);
+        
+        console.log('🚨 PEAK DISCHARGE ALERT: Battery discharging for ' + durationMinutes + ' minutes during peak hours');
+        
+        let msg = 'Your battery has been discharging for ' + durationMinutes + ' minutes during peak sunlight hours.\n\n';
+        msg += '⏰ Discharge Period:\n';
+        msg += '• Started: ' + startTimeStr + '\n';
+        msg += '• Duration: ' + durationMinutes + ' minutes\n\n';
+        msg += '☀️ Peak Hours (' + peakHours.season + '): ' + peakStartTime + ' - ' + peakEndTime + '\n\n';
+        msg += '📊 Current Status:\n';
+        msg += '• Battery Discharge: ' + Math.abs(Math.round(batteryPowerValue)) + 'W\n';
+        msg += '• Solar Production: ' + Math.round(solarPower) + 'W\n';
+        msg += '• Load: ' + Math.round(loadPower) + 'W\n';
+        msg += '• Battery SOC: ' + batterySOC + '%\n\n';
+        msg += '💡 Possible Causes:\n';
+        if (solarPower < 500) msg += '• Low solar production - check panels\n';
+        if (loadPower > solarPower + 1000) msg += '• High load exceeding production\n';
+        if (weatherData.cloudCover > 70) msg += '• Heavy cloud cover\n';
+        msg += '\nTime: ' + new Date().toLocaleString();
+        
+        await sendEmailAlert('⚠️ Battery Discharging During Peak Hours', msg);
+        
+        alertHistory.unshift({
+          type: 'peak_discharge',
+          message: 'Battery discharged for ' + durationMinutes + 'min during peak hours',
+          time: new Date().toISOString(),
+          details: {
+            dischargePower: Math.round(batteryPowerValue),
+            solarPower: Math.round(solarPower),
+            loadPower: Math.round(loadPower),
+            duration: durationMinutes
+          }
+        });
+        if (alertHistory.length > 50) alertHistory.pop();
+      }
+    }
+  } else {
+    if (peakDischargeState.isDischarging) {
+      peakDischargeState.isDischarging = false;
+      peakDischargeState.dischargeStartTime = null;
+      peakDischargeState.alertSent = false;
+    }
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // DAILY STATISTICS & UTILITY FUNCTIONS
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1178,6 +1270,46 @@ function getWeatherIcon(weatherCode) {
   return iconMap[weatherCode] || '🌤️';
 }
 
+// Calculate seasonal peak sunlight hours based on date and location
+function getSeasonalPeakHours() {
+  const now = new Date();
+  const month = now.getMonth();
+  const solarNoon = 12;
+  
+  let peakDuration;
+  if (month >= 5 && month <= 7) {
+    peakDuration = 5; // Summer: 10 AM - 3 PM
+  } else if (month >= 3 && month <= 4 || month >= 8 && month <= 9) {
+    peakDuration = 4.5; // Spring/Fall: 9:45 AM - 2:15 PM
+  } else {
+    peakDuration = 4; // Winter: 10 AM - 2 PM
+  }
+  
+  return {
+    startHour: solarNoon - (peakDuration / 2),
+    endHour: solarNoon + (peakDuration / 2),
+    solarNoon: solarNoon,
+    season: month >= 5 && month <= 7 ? 'Summer' : (month >= 3 && month <= 4 || month >= 8 && month <= 9 ? 'Spring/Fall' : 'Winter')
+  };
+}
+
+// Check if current time is within peak sunlight hours
+function isWithinPeakHours() {
+  const now = new Date();
+  const currentHour = now.getHours() + (now.getMinutes() / 60);
+  const peakHours = getSeasonalPeakHours();
+  return currentHour >= peakHours.startHour && currentHour <= peakHours.endHour;
+}
+
+// Format hour in 12-hour format with AM/PM
+function formatHour(hour) {
+  const h = Math.floor(hour);
+  const m = Math.round((hour - h) * 60);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const displayHour = h > 12 ? h - 12 : (h === 0 ? 12 : h);
+  return displayHour + ':' + (m < 10 ? '0' : '') + m + ' ' + ampm;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // HISTORICAL DATA MANAGEMENT
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1445,6 +1577,11 @@ client.on('message', async (topic, message) => {
     if (topic === 'solar_assistant/total/battery_state_of_charge/state') {
       await checkBatteryAlerts(value);
       await controlBatteryCharger(value);
+    }
+    
+    // Monitor peak discharge
+    if (topic === 'solar_assistant/total/battery_power/state') {
+      await monitorPeakDischarge(value);
     }
     
     lastUpdate = new Date();
@@ -2813,8 +2950,8 @@ app.get('/', requireAuth, (req, res) => {
       margin: 5% auto;
       padding: 30px;
       border-radius: 12px;
-      width: 90%;
-      max-width: 500px;
+      width: max(700px, 70vw);
+      max-width: 95vw;
       max-height: 85vh;
       overflow-y: auto;
       box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
@@ -2827,6 +2964,7 @@ app.get('/', requireAuth, (req, res) => {
     
     @media (max-width: 768px) {
       .modal-content {
+        width: 95vw;
         padding: 20px;
         margin: 10% auto;
       }
@@ -2840,6 +2978,42 @@ app.get('/', requireAuth, (req, res) => {
       to {
         transform: translateY(0);
         opacity: 1;
+      }
+    }
+    
+    .floating-save-btn {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      padding: 15px 30px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 50px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+      z-index: 1001;
+      transition: all 0.3s ease;
+    }
+    
+    .floating-save-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 30px rgba(102, 126, 234, 0.6);
+      background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    }
+    
+    .floating-save-btn:active {
+      transform: translateY(-1px);
+    }
+    
+    @media (max-width: 768px) {
+      .floating-save-btn {
+        bottom: 20px;
+        right: 20px;
+        padding: 12px 24px;
+        font-size: 14px;
       }
     }
     
@@ -3103,7 +3277,7 @@ app.get('/', requireAuth, (req, res) => {
       <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Dark Mode">🌙</button>
       <button class="settings-btn" onclick="openSettingsModal()" title="Alert Settings">⚙️</button>
       <button class="logout-btn" onclick="logout()" title="Logout">🚪</button>
-      <h1>☀️ SolarAssistant Dashboard <span style="font-size: 14px; color: var(--text-muted); font-weight: normal;">v8.11.1</span></h1>
+      <h1>☀️ SolarAssistant Dashboard <span style="font-size: 14px; color: var(--text-muted); font-weight: normal;">v8.13.0</span></h1>
       <div class="time-period-selector">
         <label for="timePeriod">📊 Time Period:</label>
             <select id="timePeriod" onchange="changeTimePeriod(this.value)">
@@ -4413,6 +4587,12 @@ app.get('/', requireAuth, (req, res) => {
             }
           }
           
+          // Load peak discharge settings
+          if (data.settings.peakDischargeAlert) {
+            document.getElementById('peakDischargeEnabled').checked = data.settings.peakDischargeAlert.enabled;
+            document.getElementById('peakDischargeDuration').value = data.settings.peakDischargeAlert.durationMinutes;
+          }
+          
           // Show alert state
           const stateDiv = document.getElementById('alertState');
           if (data.state.lastAlertTime) {
@@ -4470,6 +4650,10 @@ app.get('/', requireAuth, (req, res) => {
           highThreshold: parseFloat(document.getElementById('chargerHighThreshold').value),
           plugName: document.getElementById('chargerPlugName').value,
           maxTemp: parseFloat(document.getElementById('chargerMaxTemp').value)
+        },
+        peakDischargeAlert: {
+          enabled: document.getElementById('peakDischargeEnabled').checked,
+          durationMinutes: parseInt(document.getElementById('peakDischargeDuration').value)
         },
         dailySummary: {
           enabled: document.getElementById('dailySummaryEnabled').checked,
@@ -4719,7 +4903,6 @@ app.get('/', requireAuth, (req, res) => {
         </div>
         
         <div class="form-actions">
-          <button onclick="saveSettings()" class="btn-primary">Save Settings</button>
           <button onclick="sendTestEmail()" class="btn-test">📧 Send Test Email</button>
           <button onclick="closeSettingsModal()" class="btn-secondary">Cancel</button>
         </div>
@@ -4816,6 +4999,38 @@ app.get('/', requireAuth, (req, res) => {
           <p style="color: var(--text-muted); font-size: 11px; margin-top: 10px;">💡 Check your TP-Link smart plug and terminal for confirmation.</p>
         </div>
         
+        <!-- Peak Discharge Alert Section -->
+        <div style="margin-top: 20px; padding-top: 20px; border-top: 2px solid var(--border-color);">
+          <h3 style="color: var(--text-primary); font-size: 16px; margin-bottom: 15px;">☀️ Peak Discharge Monitoring</h3>
+          
+          <div class="form-group">
+            <label>
+              <input type="checkbox" id="peakDischargeEnabled" checked>
+              Enable Peak Discharge Alerts
+            </label>
+            <small style="color: var(--text-muted); display: block; margin-top: 5px;">
+              Get notified when battery discharges during peak sunlight hours (seasonally adjusted)
+            </small>
+          </div>
+          
+          <div class="form-group">
+            <label for="peakDischargeDuration">Alert After (minutes):</label>
+            <input type="number" id="peakDischargeDuration" min="5" max="120" value="30" style="width: 100px;">
+            <small style="color: var(--text-muted); display: block; margin-top: 5px;">
+              Receive alert if battery discharges for this duration during peak hours
+            </small>
+          </div>
+          
+          <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; border-left: 3px solid #f39c12; margin-top: 15px;">
+            <h4 style="color: var(--text-primary); font-size: 13px; margin-top: 0;">📅 Seasonal Peak Hours</h4>
+            <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.6;">
+              <div style="margin-bottom: 5px;"><strong>Summer (Jun-Aug):</strong> 10:00 AM - 3:00 PM</div>
+              <div style="margin-bottom: 5px;"><strong>Spring/Fall (Mar-May, Sep-Oct):</strong> 9:45 AM - 2:15 PM</div>
+              <div><strong>Winter (Nov-Feb):</strong> 10:00 AM - 2:00 PM</div>
+            </div>
+          </div>
+        </div>
+        
         <!-- Daily Summary Section -->
         <div style="margin-top: 20px; padding-top: 20px; border-top: 2px solid var(--border-color);">
           <h3 style="color: var(--text-primary); font-size: 16px; margin-bottom: 15px;">📊 Daily Summary Reports</h3>
@@ -4859,6 +5074,9 @@ app.get('/', requireAuth, (req, res) => {
           </div>
         </div>
       </div>
+      
+      <button onclick="saveSettings()" class="floating-save-btn">💾 Save All Settings</button>
+      
     </div>
   </div>
 </body>
