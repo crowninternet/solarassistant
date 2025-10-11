@@ -3103,7 +3103,7 @@ app.get('/', requireAuth, (req, res) => {
       <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Dark Mode">🌙</button>
       <button class="settings-btn" onclick="openSettingsModal()" title="Alert Settings">⚙️</button>
       <button class="logout-btn" onclick="logout()" title="Logout">🚪</button>
-      <h1>☀️ SolarAssistant Dashboard <span style="font-size: 14px; color: var(--text-muted); font-weight: normal;">v8.11.0</span></h1>
+      <h1>☀️ SolarAssistant Dashboard <span style="font-size: 14px; color: var(--text-muted); font-weight: normal;">v8.11.1</span></h1>
       <div class="time-period-selector">
         <label for="timePeriod">📊 Time Period:</label>
             <select id="timePeriod" onchange="changeTimePeriod(this.value)">
