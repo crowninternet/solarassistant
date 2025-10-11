@@ -1756,6 +1756,381 @@ app.get('/api/version', (req, res) => {
 });
 
 /**
+ * GET /settings - Settings page
+ * Serves dedicated settings page (separate window)
+ */
+app.get('/settings-page', requireAuth, (req, res) => {
+  res.send(`
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings - SolarAssistant Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    :root {
+      --bg-gradient-start: #1a1a2e;
+      --bg-gradient-end: #16213e;
+      --card-bg: #1e1e2e;
+      --text-primary: #f0f0f0;
+      --text-secondary: #d0d0d0;
+      --text-muted: #a0a0a0;
+      --border-color: #404050;
+      --success-color: #4ade80;
+      --warning-color: #fbbf24;
+      --danger-color: #f87171;
+    }
+    
+    [data-theme="light"] {
+      --bg-gradient-start: #f5f7fa;
+      --bg-gradient-end: #c3cfe2;
+      --card-bg: #ffffff;
+      --text-primary: #2c3e50;
+      --text-secondary: #34495e;
+      --text-muted: #7f8c8d;
+      --border-color: #dfe6e9;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+      min-height: 100vh;
+      padding: 20px;
+      color: var(--text-primary);
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      background: var(--card-bg);
+      padding: 20px 30px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border: 1px solid var(--border-color);
+    }
+    
+    h1 { color: var(--text-primary); font-size: 28px; }
+    
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    }
+    
+    .btn-secondary {
+      background: var(--border-color);
+      color: var(--text-primary);
+    }
+    
+    .accordion {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      margin-bottom: 15px;
+      overflow: hidden;
+    }
+    
+    .accordion-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 25px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border-bottom: 1px solid transparent;
+    }
+    
+    .accordion-header:hover {
+      background: rgba(102, 126, 234, 0.1);
+    }
+    
+    .accordion-header.active {
+      border-bottom-color: var(--border-color);
+    }
+    
+    .accordion-header h3 {
+      color: var(--text-primary);
+      font-size: 18px;
+      margin: 0;
+    }
+    
+    .accordion-icon {
+      font-size: 20px;
+      transition: transform 0.3s ease;
+      color: var(--text-secondary);
+    }
+    
+    .accordion-header.active .accordion-icon {
+      transform: rotate(180deg);
+    }
+    
+    .accordion-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.4s ease;
+    }
+    
+    .accordion-content.active {
+      max-height: 2000px;
+      padding: 25px;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+    
+    .form-group input[type="text"],
+    .form-group input[type="email"],
+    .form-group input[type="number"],
+    .form-group input[type="time"] {
+      padding: 10px;
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      background: var(--card-bg);
+      color: var(--text-primary);
+      font-size: 14px;
+    }
+    
+    .form-group small {
+      display: block;
+      margin-top: 5px;
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+    
+    .save-section {
+      position: sticky;
+      bottom: 0;
+      background: var(--card-bg);
+      padding: 20px;
+      border-top: 2px solid var(--border-color);
+      text-align: center;
+      margin-top: 30px;
+      border-radius: 0 0 12px 12px;
+    }
+    
+    .btn-test {
+      background: #3498db;
+      color: white;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    
+    .info-box {
+      background: #fff3cd;
+      padding: 12px;
+      border-radius: 6px;
+      border-left: 3px solid #ffc107;
+      margin-top: 15px;
+      color: #856404;
+      font-size: 12px;
+    }
+    
+    .location-display {
+      background: var(--card-bg);
+      padding: 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      font-size: 13px;
+      line-height: 1.8;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>⚙️ Settings</h1>
+      <button onclick="window.close()" class="btn btn-secondary">Close</button>
+    </div>
+    
+    <div id="settings-container">
+      <!-- Settings will be loaded here -->
+      <p style="text-align: center; padding: 40px; color: var(--text-muted);">Loading settings...</p>
+    </div>
+    
+    <div class="save-section">
+      <button onclick="saveAllSettings()" class="btn btn-primary" style="padding: 15px 40px; font-size: 16px;">💾 Save All Settings & Close</button>
+      <p style="color: var(--text-muted); font-size: 12px; margin-top: 10px;">Saves all settings and closes this window</p>
+    </div>
+  </div>
+  
+  <script>
+    // Load settings on page load
+    document.addEventListener('DOMContentLoaded', loadAllSettings);
+    
+    function toggleAccordion(id) {
+      const header = document.getElementById(id + '-header');
+      const content = document.getElementById(id + '-content');
+      
+      if (header && content) {
+        header.classList.toggle('active');
+        content.classList.toggle('active');
+      }
+    }
+    
+    function loadAllSettings() {
+      fetch('/settings/alerts')
+        .then(response => response.json())
+        .then(data => {
+          renderSettings(data.settings, data.chargerState);
+        })
+        .catch(error => {
+          console.error('Error loading settings:', error);
+          alert('Error loading settings');
+        });
+    }
+    
+    function renderSettings(settings, chargerState) {
+      const container = document.getElementById('settings-container');
+      
+      let html = '';
+      
+      // System Configuration Accordion
+      html += '<div class="accordion">';
+      html += '  <div class="accordion-header active" id="system-header" onclick="toggleAccordion(\'system\')">';
+      html += '    <h3>⚙️ System Configuration</h3>';
+      html += '    <span class="accordion-icon">▼</span>';
+      html += '  </div>';
+      html += '  <div class="accordion-content active" id="system-content">';
+      html += '    <div class="form-group">';
+      html += '      <label for="mqttBroker">MQTT Broker Address:</label>';
+      html += '      <input type="text" id="mqttBroker" value="' + (settings.systemSettings?.mqttBroker || 'mqtt://192.168.1.228:1883') + '" style="width: 100%;">';
+      html += '      <small>MQTT broker URL (requires app restart)</small>';
+      html += '    </div>';
+      html += '    <div class="form-group">';
+      html += '      <label for="mqttTopic">MQTT Topic:</label>';
+      html += '      <input type="text" id="mqttTopic" value="' + (settings.systemSettings?.mqttTopic || 'solar_assistant/#') + '" style="width: 100%;">';
+      html += '      <small>Subscribe pattern (# = all topics)</small>';
+      html += '    </div>';
+      html += '    <div class="form-group">';
+      html += '      <label for="zipCode">Zip Code:</label>';
+      html += '      <input type="text" id="zipCode" value="' + (settings.systemSettings?.zipCode || '85142') + '" style="width: 150px;">';
+      html += '      <button onclick="lookupZipCode()" class="btn-test" style="margin-left: 10px;">📍 Lookup</button>';
+      html += '      <small>Auto-convert to lat/long for weather</small>';
+      html += '    </div>';
+      html += '    <div class="form-group">';
+      html += '      <label>Location Details:</label>';
+      html += '      <div class="location-display">';
+      html += '        <div><strong>Name:</strong> <span id="locationNameDisplay">' + (settings.systemSettings?.locationName || 'Queen Creek, AZ') + '</span></div>';
+      html += '        <div><strong>Latitude:</strong> <span id="latitudeDisplay">' + (settings.systemSettings?.latitude || '33.2487') + '</span></div>';
+      html += '        <div><strong>Longitude:</strong> <span id="longitudeDisplay">' + (settings.systemSettings?.longitude || '-111.6343') + '</span></div>';
+      html += '        <div><strong>Timezone:</strong> <span id="timezoneDisplay">' + (settings.systemSettings?.timezone || 'America/Phoenix') + '</span></div>';
+      html += '      </div>';
+      html += '      <input type="hidden" id="latitude" value="' + (settings.systemSettings?.latitude || '33.2487') + '">';
+      html += '      <input type="hidden" id="longitude" value="' + (settings.systemSettings?.longitude || '-111.6343') + '">';
+      html += '      <input type="hidden" id="locationName" value="' + (settings.systemSettings?.locationName || 'Queen Creek, AZ') + '">';
+      html += '      <input type="hidden" id="timezone" value="' + (settings.systemSettings?.timezone || 'America/Phoenix') + '">';
+      html += '    </div>';
+      html += '    <div class="info-box">';
+      html += '      <strong>⚠️ Note:</strong> MQTT changes require app restart. Location changes take effect immediately.';
+      html += '    </div>';
+      html += '  </div>';
+      html += '</div>';
+      
+      // More sections will be added here...
+      html += '<p style="text-align: center; padding: 20px; color: var(--text-muted);">More sections coming soon...</p>';
+      
+      container.innerHTML = html;
+    }
+    
+    function lookupZipCode() {
+      const zipCode = document.getElementById('zipCode').value;
+      if (!zipCode) {
+        alert('Please enter a zip code');
+        return;
+      }
+      
+      fetch('https://nominatim.openstreetmap.org/search?postalcode=' + zipCode + '&country=US&format=json&limit=1')
+        .then(response => response.json())
+        .then(data => {
+          if (data && data.length > 0) {
+            const loc = data[0];
+            document.getElementById('latitude').value = loc.lat;
+            document.getElementById('longitude').value = loc.lon;
+            document.getElementById('locationName').value = loc.display_name;
+            document.getElementById('latitudeDisplay').textContent = parseFloat(loc.lat).toFixed(4);
+            document.getElementById('longitudeDisplay').textContent = parseFloat(loc.lon).toFixed(4);
+            document.getElementById('locationNameDisplay').textContent = loc.display_name;
+            alert('✅ Location found: ' + loc.display_name);
+          } else {
+            alert('❌ Zip code not found');
+          }
+        })
+        .catch(error => alert('❌ Error: ' + error.message));
+    }
+    
+    function saveAllSettings() {
+      const settings = {
+        enabled: true,
+        toEmail: '',
+        lowThreshold: 50,
+        highThreshold: 85,
+        systemSettings: {
+          mqttBroker: document.getElementById('mqttBroker').value,
+          mqttTopic: document.getElementById('mqttTopic').value,
+          zipCode: document.getElementById('zipCode').value,
+          latitude: parseFloat(document.getElementById('latitude').value),
+          longitude: parseFloat(document.getElementById('longitude').value),
+          locationName: document.getElementById('locationName').value,
+          timezone: document.getElementById('timezone').value
+        }
+      };
+      
+      fetch('/settings/alerts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings)
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            alert('✅ Settings saved successfully!');
+            window.close();
+          } else {
+            alert('❌ Error: ' + (data.error || 'Unknown error'));
+          }
+        })
+        .catch(error => alert('❌ Error: ' + error.message));
+    }
+  </script>
+</body>
+</html>
+  `);
+});
+
+/**
  * GET /login - Login page
  * Serves login HTML (public route)
  */
@@ -3246,7 +3621,7 @@ app.get('/', requireAuth, (req, res) => {
   <div class="container">
     <div class="header">
       <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Dark Mode">🌙</button>
-      <button class="settings-btn" onclick="openSettingsModal()" title="Alert Settings">⚙️</button>
+      <button class="settings-btn" onclick="window.open('/settings-page', 'settings', 'width=1200,height=800,scrollbars=yes')" title="Settings">⚙️</button>
       <button class="logout-btn" onclick="logout()" title="Logout">🚪</button>
       <h1>☀️ SolarAssistant Dashboard <span style="font-size: 14px; color: var(--text-muted); font-weight: normal;">v8.13.1</span></h1>
       <div class="time-period-selector">
