@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Backups
+backups/
+
+# PM2 logs
+logs/
+*.log
+
+# Environment variables
+.env
+.env.local
+
+# Data files (contain sensitive information and system state)
+alert_settings.json
+daily_stats.json
+data_history.json
+
+# SSL certificates (contain private keys)
+ssl/server.key
+ssl/server.csr
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
