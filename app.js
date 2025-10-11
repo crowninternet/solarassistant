@@ -1600,6 +1600,19 @@ app.get('/api/auth/check', authenticateToken, (req, res) => {
 });
 
 /**
+ * GET /api/version - Get application version
+ * Public endpoint to check app version
+ */
+app.get('/api/version', (req, res) => {
+  const pkg = require('./package.json');
+  res.json({ 
+    version: pkg.version,
+    name: pkg.name,
+    description: pkg.description
+  });
+});
+
+/**
  * GET /login - Login page
  * Serves login HTML (public route)
  */
