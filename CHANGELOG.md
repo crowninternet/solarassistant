@@ -4,6 +4,25 @@ All notable changes to the SolarAssistant Dashboard will be documented in this f
 
 ---
 
+## [8.13.1] - 2025-10-11
+
+### 🐛 Bug Fixes
+- **Fixed Chart Time Period Selector**:
+  - Charts now correctly display the full selected time range
+  - "Past 24 Hours" shows full 24 hours backward from current time (e.g., 11:51 AM yesterday to 11:51 AM today)
+  - Previously only showed from midnight to current time
+  - Fix: Re-fetches historical data from server when time period changes
+  - Properly filters data to exact time range before displaying
+  - Applies to all time periods (1h, 12h, 24h, 48h, 7 days, 1 month, 1 year)
+
+### 🔧 Technical Improvements
+- `changeTimePeriod()` now fetches `/data/history` on each period change
+- Filters historical data to selected time range before chart update
+- Reduces data points intelligently for performance
+- Updates chart x-axis min/max to exact time boundaries
+
+---
+
 ## [8.13.0] - 2025-10-11
 
 ### 🎯 Major Features
