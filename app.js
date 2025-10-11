@@ -4419,40 +4419,86 @@ app.get('/', requireAuth, (req, res) => {
       currentTimeRange.min = startTime;
       currentTimeRange.max = now;
       
-      // Update time scale options for all charts
-      [pvPowerChart, batterySocChart, loadPowerChart].forEach(chart => {
-        if (chart) {
-          // Filter data to only show points within the selected time range
-          chart.data.datasets.forEach(dataset => {
-            const originalData = [...dataset.data];
-            dataset.data = originalData.filter(point => {
-              const pointTime = new Date(point.x);
-              return pointTime >= startTime && pointTime <= now;
+      // Re-fetch historical data from server to get full dataset for selected time range
+      fetch('/data/history')
+        .then(response => response.json())
+        .then(historyData => {
+          const data = historyData.data;
+          
+          // Helper function to filter and reduce data
+          function filterAndReduce(topicData, maxPoints) {
+            if (!topicData) return [];
+            
+            // Filter to time range first
+            const filtered = topicData.filter(item => {
+              const itemTime = new Date(item.timestamp);
+              return itemTime >= startTime && itemTime <= now;
             });
-          });
-          
-          // Set time range
-          chart.options.scales.x.min = startTime;
-          chart.options.scales.x.max = now;
-          
-          // Update time unit and display formats
-          chart.options.scales.x.time.unit = timeUnit;
-          chart.options.scales.x.time.displayFormats = displayFormats;
-          chart.options.scales.x.ticks.maxTicksLimit = maxTicks;
-          
-          // Force full screen utilization
-          chart.options.layout = {
-            padding: {
-              left: 10,
-              right: 10,
-              top: 10,
-              bottom: 10
+            
+            // Then reduce points if needed
+            if (filtered.length <= maxPoints) return filtered.map(item => ({
+              x: new Date(item.timestamp),
+              y: item.value
+            }));
+            
+            const step = Math.ceil(filtered.length / maxPoints);
+            const reduced = [];
+            for (let i = 0; i < filtered.length; i += step) {
+              const slice = filtered.slice(i, i + step);
+              const avgX = slice.reduce((sum, point) => sum + new Date(point.timestamp).getTime(), 0) / slice.length;
+              const avgY = slice.reduce((sum, point) => sum + point.value, 0) / slice.length;
+              reduced.push({ x: new Date(avgX), y: avgY });
             }
-          };
+            return reduced;
+          }
           
-          chart.update('none');
-        }
-      });
+          // Update PV Power Chart datasets
+          if (pvPowerChart) {
+            const pvTotalData = filterAndReduce(data['solar_assistant/inverter_1/pv_power/state'], 100);
+            const pv1Data = filterAndReduce(data['solar_assistant/inverter_1/pv_power_1/state'], 80);
+            const pv2Data = filterAndReduce(data['solar_assistant/inverter_1/pv_power_2/state'], 80);
+            
+            pvPowerChart.data.datasets[0].data = pvTotalData;
+            if (pvPowerChart.data.datasets[1]) pvPowerChart.data.datasets[1].data = pv1Data;
+            if (pvPowerChart.data.datasets[2]) pvPowerChart.data.datasets[2].data = pv2Data;
+            
+            pvPowerChart.options.scales.x.min = startTime;
+            pvPowerChart.options.scales.x.max = now;
+            pvPowerChart.options.scales.x.time.unit = timeUnit;
+            pvPowerChart.options.scales.x.time.displayFormats = displayFormats;
+            pvPowerChart.options.scales.x.ticks.maxTicksLimit = maxTicks;
+            pvPowerChart.update('none');
+          }
+          
+          // Update Battery SOC Chart
+          if (batterySocChart) {
+            const socData = filterAndReduce(data['solar_assistant/total/battery_state_of_charge/state'], 100);
+            
+            batterySocChart.data.datasets[0].data = socData;
+            batterySocChart.options.scales.x.min = startTime;
+            batterySocChart.options.scales.x.max = now;
+            batterySocChart.options.scales.x.time.unit = timeUnit;
+            batterySocChart.options.scales.x.time.displayFormats = displayFormats;
+            batterySocChart.options.scales.x.ticks.maxTicksLimit = maxTicks;
+            batterySocChart.update('none');
+          }
+          
+          // Update Load Power Chart
+          if (loadPowerChart) {
+            const loadData = filterAndReduce(data['solar_assistant/inverter_1/load_power/state'], 100);
+            
+            loadPowerChart.data.datasets[0].data = loadData;
+            loadPowerChart.options.scales.x.min = startTime;
+            loadPowerChart.options.scales.x.max = now;
+            loadPowerChart.options.scales.x.time.unit = timeUnit;
+            loadPowerChart.options.scales.x.time.displayFormats = displayFormats;
+            loadPowerChart.options.scales.x.ticks.maxTicksLimit = maxTicks;
+            loadPowerChart.update('none');
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching historical data:', error);
+        });
       
       // Update chart titles
       const periodLabels = {
