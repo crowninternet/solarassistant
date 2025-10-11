@@ -1156,9 +1156,15 @@ function getBatteryRuntime() {
 function getPowerBalance() {
   const solarPower = parseFloat(cachedData['solar_assistant/inverter_1/pv_power/state']?.value);
   const loadPower = parseFloat(cachedData['solar_assistant/inverter_1/load_power/state']?.value);
+  const batteryPower = parseFloat(cachedData['solar_assistant/total/battery_power/state']?.value);
   
   if (!isNaN(solarPower) && !isNaN(loadPower)) {
-    return Math.round(solarPower - loadPower);
+    // Calculate total power input: Solar + External Charger (if IFTTT triggered it ON)
+    const isExternalChargerOn = chargerState && chargerState.isOn;
+    const externalChargerPower = (isExternalChargerOn && batteryPower > 0) ? batteryPower : 0;
+    const totalPowerInput = solarPower + externalChargerPower;
+    
+    return Math.round(totalPowerInput - loadPower);
   }
   return 'N/A';
 }
@@ -2051,7 +2057,8 @@ app.get('/data', authenticateToken, (req, res) => {
     messageCount: messageCount,
     status: connectionStatus,
     topics: Object.keys(cachedData).length,
-    weather: weatherData
+    weather: weatherData,
+    chargerState: chargerState
   });
 });
 
@@ -4061,6 +4068,12 @@ app.get('/', requireAuth, (req, res) => {
           updateValueCard('solar_assistant/total/battery_power/state', data);
           updateValueCard('solar_assistant/inverter_1/load_power/state', data);
           updateValueCard('solar_assistant/inverter_1/battery_voltage/state', data);
+          
+          // Store charger state globally for power balance calculation
+          if (currentData.chargerState) {
+            window.chargerState = currentData.chargerState;
+          }
+          
           updatePowerBalance(data);
           
           // Update weather card
@@ -4225,11 +4238,11 @@ app.get('/', requireAuth, (req, res) => {
         const batteryPower = data[batteryPowerTopic] ? parseFloat(data[batteryPowerTopic].value) : 0;
         
         if (!isNaN(solarPower) && !isNaN(loadPower)) {
-          // Calculate total power sources vs consumption
-          // Positive battery power = charging (add to sources)
-          // Negative battery power = discharging (already accounted for in load consumption)
-          const totalSources = solarPower + Math.max(0, batteryPower);
-          const balance = totalSources - loadPower;
+          // Calculate total power input: Solar + External Charger (if IFTTT triggered ON)
+          const isExternalChargerOn = window.chargerState && window.chargerState.isOn;
+          const externalChargerPower = (isExternalChargerOn && batteryPower > 0) ? batteryPower : 0;
+          const totalPowerInput = solarPower + externalChargerPower;
+          const balance = totalPowerInput - loadPower;
           
           const card = document.getElementById('powerBalanceCard');
           const valueElement = document.getElementById('powerBalanceValue');
@@ -4242,20 +4255,22 @@ app.get('/', requireAuth, (req, res) => {
             if (balance > 0) {
               // Net positive - green with up arrow
               valueElement.innerHTML = '↑ ' + absBalance;
-              valueElement.style.color = '#27ae60'; // Green
+              valueElement.style.color = '#27ae60';
               card.style.borderLeft = '3px solid #27ae60';
               
-              // Determine if charging from solar or external charger
-              if (batteryPower > 0) {
-                statusElement.textContent = '🔋 Charging (External + Solar)';
+              // Simple status: show charger details only when IFTTT charger is active
+              if (isExternalChargerOn && externalChargerPower > 0) {
+                let statusText = '🔋 Charging';
+                statusText += '<br><span style="font-size: 11px; color: var(--text-muted);">⚡ Charger: ' + Math.round(externalChargerPower) + 'W</span>';
+                statusElement.innerHTML = statusText;
               } else {
-                statusElement.textContent = '🔋 Charging (Solar Only)';
+                statusElement.textContent = '🔋 Charging';
               }
               statusElement.style.color = '#27ae60';
             } else if (balance < 0) {
               // Net negative - red with down arrow
               valueElement.innerHTML = '↓ ' + absBalance;
-              valueElement.style.color = '#e74c3c'; // Red
+              valueElement.style.color = '#e74c3c';
               card.style.borderLeft = '3px solid #e74c3c';
               statusElement.textContent = '⚡ Discharging';
               statusElement.style.color = '#e74c3c';
