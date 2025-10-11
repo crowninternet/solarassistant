@@ -1911,7 +1911,8 @@ app.get('/settings-page', requireAuth, (req, res) => {
     .form-group input[type="text"],
     .form-group input[type="email"],
     .form-group input[type="number"],
-    .form-group input[type="time"] {
+    .form-group input[type="time"],
+    .form-group input[type="password"] {
       padding: 10px;
       border: 2px solid var(--border-color);
       border-radius: 8px;
@@ -1972,7 +1973,7 @@ app.get('/settings-page', requireAuth, (req, res) => {
   <div class="container">
     <div class="header">
       <h1>⚙️ Settings</h1>
-      <button onclick="window.close()" class="btn btn-secondary">Close</button>
+      <button onclick="window.location.href='/'" class="btn btn-secondary">← Back to Dashboard</button>
     </div>
     
     <div id="settings-container">
@@ -1981,8 +1982,8 @@ app.get('/settings-page', requireAuth, (req, res) => {
     </div>
     
     <div class="save-section">
-      <button onclick="saveAllSettings()" class="btn btn-primary" style="padding: 15px 40px; font-size: 16px;">💾 Save All Settings & Close</button>
-      <p style="color: var(--text-muted); font-size: 12px; margin-top: 10px;">Saves all settings and closes this window</p>
+      <button onclick="saveAllSettings()" class="btn btn-primary" style="padding: 15px 40px; font-size: 16px;">💾 Save All Settings</button>
+      <p style="color: var(--text-muted); font-size: 12px; margin-top: 10px;">Saves all settings across all sections • Use "Back to Dashboard" to return</p>
     </div>
   </div>
   
@@ -1995,35 +1996,69 @@ app.get('/settings-page', requireAuth, (req, res) => {
       const content = document.getElementById(id + '-content');
       
       if (header && content) {
-        header.classList.toggle('active');
-        content.classList.toggle('active');
+        // Check if this accordion is already open
+        const isCurrentlyOpen = header.classList.contains('active');
+        
+        if (isCurrentlyOpen) {
+          // If it's open, just close it
+          header.classList.remove('active');
+          content.classList.remove('active');
+        } else {
+          // If it's closed, close all others first, then open this one
+          const allHeaders = document.querySelectorAll('.accordion-header');
+          const allContents = document.querySelectorAll('.accordion-content');
+          
+          allHeaders.forEach(h => h.classList.remove('active'));
+          allContents.forEach(c => c.classList.remove('active'));
+          
+          // Then open the clicked one
+          header.classList.add('active');
+          content.classList.add('active');
+        }
       }
     }
     
     function loadAllSettings() {
-      fetch('/settings/alerts')
-        .then(response => response.json())
+      console.log('Loading settings...');
+      fetch('/settings/alerts', {
+        credentials: 'same-origin'
+      })
+        .then(response => {
+          console.log('Response status:', response.status);
+          if (!response.ok) {
+            throw new Error('Failed to load settings (status: ' + response.status + ')');
+          }
+          return response.json();
+        })
         .then(data => {
+          console.log('Settings data:', data);
+          if (!data.settings) {
+            throw new Error('Invalid settings data received');
+          }
           renderSettings(data.settings, data.chargerState);
         })
         .catch(error => {
           console.error('Error loading settings:', error);
-          alert('Error loading settings');
+          document.getElementById('settings-container').innerHTML = '<p style="text-align: center; padding: 40px; color: red;">❌ Error loading settings: ' + error.message + '<br><br><a href="/">← Back to Dashboard</a></p>';
         });
     }
     
     function renderSettings(settings, chargerState) {
-      const container = document.getElementById('settings-container');
-      
-      let html = '';
+      try {
+        const container = document.getElementById('settings-container');
+        
+        // Debug logging
+        console.log('Rendering settings:', settings);
+        
+        let html = '';
       
       // System Configuration Accordion
       html += '<div class="accordion">';
-      html += '  <div class="accordion-header active" id="system-header" onclick="toggleAccordion(\'system\')">';
+      html += '  <div class="accordion-header" id="system-header" onclick="toggleAccordion(' + "'" + 'system' + "'" + ')">';
       html += '    <h3>⚙️ System Configuration</h3>';
       html += '    <span class="accordion-icon">▼</span>';
       html += '  </div>';
-      html += '  <div class="accordion-content active" id="system-content">';
+      html += '  <div class="accordion-content" id="system-content">';
       html += '    <div class="form-group">';
       html += '      <label for="mqttBroker">MQTT Broker Address:</label>';
       html += '      <input type="text" id="mqttBroker" value="' + (settings.systemSettings?.mqttBroker || 'mqtt://192.168.1.228:1883') + '" style="width: 100%;">';
@@ -2059,10 +2094,225 @@ app.get('/settings-page', requireAuth, (req, res) => {
       html += '  </div>';
       html += '</div>';
       
-      // More sections will be added here...
-      html += '<p style="text-align: center; padding: 20px; color: var(--text-muted);">More sections coming soon...</p>';
+      // Email Alert Settings Accordion
+      html += '<div class="accordion" style="margin-top: 20px;">';
+      html += '  <div class="accordion-header" id="email-header" onclick="toggleAccordion(' + "'" + 'email' + "'" + ')">';
+      html += '    <h3>📧 Email Alert Settings</h3>';
+      html += '    <span class="accordion-icon">▼</span>';
+      html += '  </div>';
+      html += '  <div class="accordion-content" id="email-content">';
+      html += '    <div class="form-group">';
+      html += '      <label><input type="checkbox" id="emailEnabled" ' + (settings.enabled ? 'checked' : '') + '> Enable Email Alerts</label>';
+      html += '    </div>';
+      html += '    <div class="form-group">';
+      html += '      <label for="fromEmail">From Email Address:</label>';
+      html += '      <input type="email" id="fromEmail" value="' + (settings.fromEmail || 'notify@wpsitemail.com') + '" style="width: 100%;">';
+      html += '      <small>Email address that sends alerts (must be verified in SendGrid)</small>';
+      html += '    </div>';
+      html += '    <div class="form-group">';
+      html += '      <label for="toEmail">To Email Address:</label>';
+      html += '      <input type="email" id="toEmail" value="' + (settings.toEmail || '') + '" style="width: 100%;">';
+      html += '      <small>Email address that receives alerts</small>';
+      html += '    </div>';
+      html += '    <div class="form-group">';
+      html += '      <label for="sendgridApiKey">SendGrid API Key:</label>';
+      html += '      <input type="password" id="sendgridApiKey" placeholder="Enter new API key" style="width: 100%;">';
+      html += '      <small>' + (settings.sendgridApiKey ? 'Current: ' + settings.sendgridApiKey + ' • Leave blank to keep existing' : 'Enter your SendGrid API key') + '</small>';
+      html += '    </div>';
+      html += '    <div class="form-group">';
+      html += '      <label for="lowThreshold">Low Battery Threshold (%):</label>';
+      html += '      <input type="number" id="lowThreshold" value="' + (settings.lowThreshold || 50) + '" min="0" max="100" style="width: 100px;">';
+      html += '    </div>';
+      html += '    <div class="form-group">';
+      html += '      <label for="highThreshold">Recovery Threshold (%):</label>';
+      html += '      <input type="number" id="highThreshold" value="' + (settings.highThreshold || 85) + '" min="0" max="100" style="width: 100px;">';
+      html += '    </div>';
+      html += '    <div class="form-group">';
+      html += '      <label>Test Email Functionality:</label>';
+      html += '      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">';
+      html += '        <button onclick="testEmail()" class="btn-test" style="background: #3498db; padding: 12px;">📧 Test Email</button>';
+      html += '        <button onclick="testDailySummary()" class="btn-test" style="background: #9b59b6; padding: 12px;">📊 Test Daily Report</button>';
+      html += '      </div>';
+      html += '      <small style="display: block; margin-top: 8px;">Test email delivery and daily summary functionality</small>';
+      html += '    </div>';
+      html += '  </div>';
+      html += '</div>';
       
-      container.innerHTML = html;
+      // Battery Charger Control Accordion
+      html += '<div class="accordion" style="margin-top: 20px;">';
+      html += '  <div class="accordion-header" id="charger-header" onclick="toggleAccordion(' + "'" + 'charger' + "'" + ')">';
+      html += '    <h3>🔌 Battery Charger Control</h3>';
+      html += '    <span class="accordion-icon">▼</span>';
+      html += '  </div>';
+      html += '  <div class="accordion-content" id="charger-content">';
+      html += '    <div class="form-group">';
+      html += '      <label><input type="checkbox" id="chargerEnabled" ' + (settings.chargerControl?.enabled ? 'checked' : '') + '> Enable Automatic Charger Control</label>';
+      html += '    </div>';
+      html += '    <div class="form-group">';
+      html += '      <label for="iftttWebhookKey">IFTTT Webhook Key:</label>';
+      html += '      <input type="password" id="iftttWebhookKey" placeholder="Enter new webhook key" style="width: 100%;">';
+      html += '      <small>' + (settings.chargerControl?.iftttWebhookKey ? 'Current: ' + settings.chargerControl.iftttWebhookKey + ' • Leave blank to keep existing' : 'Enter your IFTTT webhook key') + '</small>';
+      html += '    </div>';
+      html += '    <div class="form-group">';
+      html += '      <label for="chargerLowThreshold">Turn ON at (%):</label>';
+      html += '      <input type="number" id="chargerLowThreshold" value="' + (settings.chargerControl?.lowThreshold || 50) + '" min="0" max="100" style="width: 100px;">';
+      html += '    </div>';
+      html += '    <div class="form-group">';
+      html += '      <label for="chargerHighThreshold">Turn OFF at (%):</label>';
+      html += '      <input type="number" id="chargerHighThreshold" value="' + (settings.chargerControl?.highThreshold || 90) + '" min="0" max="100" style="width: 100px;">';
+      html += '    </div>';
+      html += '    <div class="form-group">';
+      html += '      <label for="chargerPlugName">Smart Plug Name:</label>';
+      html += '      <input type="text" id="chargerPlugName" value="' + (settings.chargerControl?.plugName || 'Battery Charger') + '" style="width: 100%;">';
+      html += '    </div>';
+      html += '    <div class="form-group">';
+      html += '      <label for="chargerMaxTemp">Max Temperature (°C):</label>';
+      html += '      <input type="number" id="chargerMaxTemp" value="' + (settings.chargerControl?.maxTemp || 45) + '" min="0" max="100" style="width: 100px;">';
+      html += '      <small>Auto-shutoff temperature</small>';
+      html += '    </div>';
+      html += '  </div>';
+      html += '</div>';
+      
+      // Peak Discharge Monitoring Accordion
+      html += '<div class="accordion" style="margin-top: 20px;">';
+      html += '  <div class="accordion-header" id="peak-header" onclick="toggleAccordion(' + "'" + 'peak' + "'" + ')">';
+      html += '    <h3>☀️ Peak Discharge Monitoring</h3>';
+      html += '    <span class="accordion-icon">▼</span>';
+      html += '  </div>';
+      html += '  <div class="accordion-content" id="peak-content">';
+      html += '    <div class="form-group">';
+      html += '      <label><input type="checkbox" id="peakDischargeEnabled" ' + (settings.peakDischargeAlert?.enabled ? 'checked' : '') + '> Enable Peak Discharge Alerts</label>';
+      html += '      <small style="display: block; margin-top: 5px;">Get notified when battery discharges during peak sunlight hours</small>';
+      html += '    </div>';
+      html += '    <div class="form-group">';
+      html += '      <label for="peakDischargeDuration">Alert After (minutes):</label>';
+      html += '      <input type="number" id="peakDischargeDuration" value="' + (settings.peakDischargeAlert?.durationMinutes || 30) + '" min="5" max="120" style="width: 100px;">';
+      html += '    </div>';
+      html += '    <div class="info-box">';
+      html += '      <strong>📅 Seasonal Peak Hours:</strong><br>';
+      html += '      <div style="margin-top: 8px; line-height: 1.6;">';
+      html += '        <strong>Summer (Jun-Aug):</strong> 10:00 AM - 3:00 PM<br>';
+      html += '        <strong>Spring/Fall (Mar-May, Sep-Oct):</strong> 9:45 AM - 2:15 PM<br>';
+      html += '        <strong>Winter (Nov-Feb):</strong> 10:00 AM - 2:00 PM';
+      html += '      </div>';
+      html += '    </div>';
+      html += '  </div>';
+      html += '</div>';
+      
+      // Manual Charger Control Accordion
+      html += '<div class="accordion" style="margin-top: 20px;">';
+      html += '  <div class="accordion-header" id="manual-header" onclick="toggleAccordion(' + "'" + 'manual' + "'" + ')">';
+      html += '    <h3>🔧 Manual Charger Control</h3>';
+      html += '    <span class="accordion-icon">▼</span>';
+      html += '  </div>';
+      html += '  <div class="accordion-content" id="manual-content">';
+      html += '    <div class="form-group">';
+      html += '      <label>Manual Charger Control:</label>';
+      html += '      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">';
+      html += '        <button onclick="testChargerControl(' + "'" + 'on' + "'" + ')" class="btn-test" style="background: #27ae60; padding: 12px;">🔌 Turn ON</button>';
+      html += '        <button onclick="testChargerControl(' + "'" + 'off' + "'" + ')" class="btn-test" style="background: #e74c3c; padding: 12px;">🔌 Turn OFF</button>';
+      html += '      </div>';
+      html += '      <small style="display: block; margin-top: 8px;">Override all settings and thresholds • Check your smart plug for confirmation</small>';
+      html += '    </div>';
+      html += '    <div class="info-box">';
+      html += '      <strong>⚠️ Manual Override:</strong> These buttons bypass ALL automatic controls, thresholds, and cooldowns.';
+      html += '    </div>';
+      html += '  </div>';
+      html += '</div>';
+      
+      // Daily Email Reports Accordion
+      html += '<div class="accordion" style="margin-top: 20px;">';
+      html += '  <div class="accordion-header" id="daily-header" onclick="toggleAccordion(' + "'" + 'daily' + "'" + ')">';
+      html += '    <h3>📊 Daily Email Reports</h3>';
+      html += '    <span class="accordion-icon">▼</span>';
+      html += '  </div>';
+      html += '  <div class="accordion-content" id="daily-content">';
+      html += '    <div class="form-group">';
+      html += '      <label><input type="checkbox" id="dailySummaryEnabled" ' + (settings.dailySummary?.enabled ? 'checked' : '') + '> Enable Daily Email Reports</label>';
+      html += '      <small style="display: block; margin-top: 5px;">Receive daily summary reports via email</small>';
+      html += '    </div>';
+      html += '    <div class="form-group">';
+      html += '      <label for="dailySummaryTime">Report Time:</label>';
+      html += '      <input type="time" id="dailySummaryTime" value="' + (settings.dailySummary?.sendTime || '20:00') + '" style="width: 150px;">';
+      html += '      <small>Time to send daily reports (24-hour format)</small>';
+      html += '    </div>';
+      html += '    <div class="info-box">';
+      html += '      <strong>Daily Reports Include:</strong><br>';
+      html += '      Energy production and consumption summary<br>';
+      html += '      Battery performance and charging cycles<br>';
+      html += '      Weather conditions and impact<br>';
+      html += '      System alerts and notifications';
+      html += '    </div>';
+      html += '  </div>';
+      html += '</div>';
+      
+        container.innerHTML = html;
+      } catch (error) {
+        console.error('Error in renderSettings:', error);
+        container.innerHTML = '<p style="text-align: center; padding: 40px; color: red;">ERROR: Error rendering settings: ' + error.message + '<br><br><a href="/">Back to Dashboard</a></p>';
+      }
+    }
+    
+    function testChargerControl(action) {
+      fetch('/settings/charger/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: action })
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            const state = data.chargerState;
+            let message = 'SUCCESS: ' + data.message + '\\n\\n';
+            message += 'Charger State:\\n';
+            message += 'Status: ' + (state.isOn ? 'ON' : 'OFF') + '\\n';
+            message += 'Last Action: ' + (state.lastAction || 'None') + '\\n';
+            message += 'Time: ' + (state.lastActionTime ? new Date(state.lastActionTime).toLocaleString() : 'N/A') + '\\n\\n';
+            message += 'Check your smart plug for confirmation.';
+            alert(message);
+          } else {
+            alert('ERROR: ' + (data.message || data.error));
+          }
+        })
+        .catch(error => {
+          alert('ERROR: ' + error.message);
+        });
+    }
+    
+    function testEmail() {
+      fetch('/settings/alerts/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            alert('SUCCESS: Test email sent successfully! Check your inbox.');
+          } else {
+            alert('ERROR: ' + (data.message || data.error));
+          }
+        })
+        .catch(error => {
+          alert('ERROR: ' + error.message);
+        });
+    }
+    
+    function testDailySummary() {
+      fetch('/settings/daily-summary/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            alert('SUCCESS: Test daily summary sent successfully! Check your email.');
+          } else {
+            alert('ERROR: ' + (data.message || data.error));
+          }
+        })
+        .catch(error => {
+          alert('ERROR: ' + error.message);
+        });
     }
     
     function lookupZipCode() {
@@ -2093,10 +2343,12 @@ app.get('/settings-page', requireAuth, (req, res) => {
     
     function saveAllSettings() {
       const settings = {
-        enabled: true,
-        toEmail: '',
-        lowThreshold: 50,
-        highThreshold: 85,
+        enabled: document.getElementById('emailEnabled').checked,
+        fromEmail: document.getElementById('fromEmail').value,
+        toEmail: document.getElementById('toEmail').value,
+        lowThreshold: parseInt(document.getElementById('lowThreshold').value),
+        highThreshold: parseInt(document.getElementById('highThreshold').value),
+        sendgridApiKey: document.getElementById('sendgridApiKey').value || undefined,
         systemSettings: {
           mqttBroker: document.getElementById('mqttBroker').value,
           mqttTopic: document.getElementById('mqttTopic').value,
@@ -2105,6 +2357,23 @@ app.get('/settings-page', requireAuth, (req, res) => {
           longitude: parseFloat(document.getElementById('longitude').value),
           locationName: document.getElementById('locationName').value,
           timezone: document.getElementById('timezone').value
+        },
+        chargerControl: {
+          enabled: document.getElementById('chargerEnabled').checked,
+          iftttWebhookKey: document.getElementById('iftttWebhookKey').value || undefined,
+          lowThreshold: parseInt(document.getElementById('chargerLowThreshold').value),
+          highThreshold: parseInt(document.getElementById('chargerHighThreshold').value),
+          plugName: document.getElementById('chargerPlugName').value,
+          maxTemp: parseInt(document.getElementById('chargerMaxTemp').value)
+        },
+        peakDischargeAlert: {
+          enabled: document.getElementById('peakDischargeEnabled').checked,
+          durationMinutes: parseInt(document.getElementById('peakDischargeDuration').value)
+        },
+        dailySummary: {
+          enabled: document.getElementById('dailySummaryEnabled').checked,
+          sendTime: document.getElementById('dailySummaryTime').value,
+          timezone: 'America/Phoenix'
         }
       };
       
@@ -2117,7 +2386,7 @@ app.get('/settings-page', requireAuth, (req, res) => {
         .then(data => {
           if (data.success) {
             alert('✅ Settings saved successfully!');
-            window.close();
+            // Stay on settings page for additional changes
           } else {
             alert('❌ Error: ' + (data.error || 'Unknown error'));
           }
@@ -2531,9 +2800,10 @@ app.get('/settings/alerts', authenticateToken, (req, res) => {
  */
 app.post('/settings/alerts', authenticateToken, (req, res) => {
   try {
-    const { enabled, toEmail, lowThreshold, highThreshold, sendgridApiKey, chargerControl } = req.body;
+    const { enabled, fromEmail, toEmail, lowThreshold, highThreshold, sendgridApiKey, chargerControl } = req.body;
     
     if (enabled !== undefined) alertSettings.enabled = enabled;
+    if (fromEmail) alertSettings.fromEmail = fromEmail;
     if (toEmail) alertSettings.toEmail = toEmail;
     if (lowThreshold !== undefined) alertSettings.lowThreshold = parseFloat(lowThreshold);
     if (highThreshold !== undefined) alertSettings.highThreshold = parseFloat(highThreshold);
@@ -3621,9 +3891,9 @@ app.get('/', requireAuth, (req, res) => {
   <div class="container">
     <div class="header">
       <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Dark Mode">🌙</button>
-      <button class="settings-btn" onclick="window.open('/settings-page', 'settings', 'width=1200,height=800,scrollbars=yes')" title="Settings">⚙️</button>
+      <button class="settings-btn" onclick="window.location.href='/settings-page'" title="Settings">⚙️</button>
       <button class="logout-btn" onclick="logout()" title="Logout">🚪</button>
-      <h1>☀️ SolarAssistant Dashboard <span style="font-size: 14px; color: var(--text-muted); font-weight: normal;">v8.13.1</span></h1>
+      <h1>☀️ SolarAssistant Dashboard <span style="font-size: 14px; color: var(--text-muted); font-weight: normal;">v8.14.0</span></h1>
       <div class="time-period-selector">
         <label for="timePeriod">📊 Time Period:</label>
             <select id="timePeriod" onchange="changeTimePeriod(this.value)">
