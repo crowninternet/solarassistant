@@ -2898,9 +2898,11 @@ app.get('/battery', requireAuth, (req, res) => {
                 timestamp: new Date(point.timestamp),
                 value: point.value
               })),
-              backgroundColor: 'rgba(39, 174, 96, 0.7)',
+              backgroundColor: 'rgba(39, 174, 96, 0.1)',
               borderColor: '#27ae60',
-              borderWidth: 1
+              borderWidth: 2,
+              tension: 0.4,
+              fill: true
             },
             {
               label: 'Battery 2',
@@ -2908,9 +2910,11 @@ app.get('/battery', requireAuth, (req, res) => {
                 timestamp: new Date(point.timestamp),
                 value: point.value
               })),
-              backgroundColor: 'rgba(52, 152, 219, 0.7)',
+              backgroundColor: 'rgba(52, 152, 219, 0.1)',
               borderColor: '#3498db',
-              borderWidth: 1
+              borderWidth: 2,
+              tension: 0.4,
+              fill: true
             },
             {
               label: 'Battery 3',
@@ -2918,9 +2922,11 @@ app.get('/battery', requireAuth, (req, res) => {
                 timestamp: new Date(point.timestamp),
                 value: point.value
               })),
-              backgroundColor: 'rgba(243, 156, 18, 0.7)',
+              backgroundColor: 'rgba(243, 156, 18, 0.1)',
               borderColor: '#f39c12',
-              borderWidth: 1
+              borderWidth: 2,
+              tension: 0.4,
+              fill: true
             }
           ]
         },
@@ -2939,9 +2945,11 @@ app.get('/battery', requireAuth, (req, res) => {
                 timestamp: new Date(point.timestamp),
                 value: point.value
               })),
-              backgroundColor: 'rgba(39, 174, 96, 0.7)',
+              backgroundColor: 'rgba(39, 174, 96, 0.1)',
               borderColor: '#27ae60',
-              borderWidth: 1
+              borderWidth: 2,
+              tension: 0.4,
+              fill: true
             },
             {
               label: 'Battery 2',
@@ -2949,9 +2957,11 @@ app.get('/battery', requireAuth, (req, res) => {
                 timestamp: new Date(point.timestamp),
                 value: point.value
               })),
-              backgroundColor: 'rgba(52, 152, 219, 0.7)',
+              backgroundColor: 'rgba(52, 152, 219, 0.1)',
               borderColor: '#3498db',
-              borderWidth: 1
+              borderWidth: 2,
+              tension: 0.4,
+              fill: true
             },
             {
               label: 'Battery 3',
@@ -2959,9 +2969,11 @@ app.get('/battery', requireAuth, (req, res) => {
                 timestamp: new Date(point.timestamp),
                 value: point.value
               })),
-              backgroundColor: 'rgba(243, 156, 18, 0.7)',
+              backgroundColor: 'rgba(243, 156, 18, 0.1)',
               borderColor: '#f39c12',
-              borderWidth: 1
+              borderWidth: 2,
+              tension: 0.4,
+              fill: true
             }
           ]
         },
@@ -2980,9 +2992,11 @@ app.get('/battery', requireAuth, (req, res) => {
                 timestamp: new Date(point.timestamp),
                 value: point.value
               })),
-              backgroundColor: 'rgba(39, 174, 96, 0.7)',
+              backgroundColor: 'rgba(39, 174, 96, 0.1)',
               borderColor: '#27ae60',
-              borderWidth: 1
+              borderWidth: 2,
+              tension: 0.4,
+              fill: true
             },
             {
               label: 'Battery 2',
@@ -2990,9 +3004,11 @@ app.get('/battery', requireAuth, (req, res) => {
                 timestamp: new Date(point.timestamp),
                 value: point.value
               })),
-              backgroundColor: 'rgba(52, 152, 219, 0.7)',
+              backgroundColor: 'rgba(52, 152, 219, 0.1)',
               borderColor: '#3498db',
-              borderWidth: 1
+              borderWidth: 2,
+              tension: 0.4,
+              fill: true
             },
             {
               label: 'Battery 3',
@@ -3000,9 +3016,11 @@ app.get('/battery', requireAuth, (req, res) => {
                 timestamp: new Date(point.timestamp),
                 value: point.value
               })),
-              backgroundColor: 'rgba(243, 156, 18, 0.7)',
+              backgroundColor: 'rgba(243, 156, 18, 0.1)',
               borderColor: '#f39c12',
-              borderWidth: 1
+              borderWidth: 2,
+              tension: 0.4,
+              fill: true
             }
           ]
         },
