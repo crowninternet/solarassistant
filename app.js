@@ -3966,7 +3966,7 @@ app.get('/', requireAuth, (req, res) => {
     .theme-toggle-btn {
       position: absolute;
       top: 20px;
-      right: 120px;
+      right: 70px;
       background: var(--card-bg);
       color: var(--accent-color);
       border: 2px solid var(--border-color);
@@ -3990,7 +3990,7 @@ app.get('/', requireAuth, (req, res) => {
     @media (max-width: 768px) {
       .theme-toggle-btn {
         top: 10px;
-        right: 120px;
+        right: 20px;
         width: 32px;
         height: 32px;
         font-size: 16px;
@@ -4352,7 +4352,7 @@ app.get('/', requireAuth, (req, res) => {
          .battery-btn {
            position: absolute;
            top: 20px;
-           right: 270px;
+           right: 170px;
            background: var(--card-bg);
            color: #27ae60;
            border: 2px solid var(--border-color);
@@ -4377,7 +4377,7 @@ app.get('/', requireAuth, (req, res) => {
          .settings-btn {
            position: absolute;
            top: 20px;
-           right: 170px;
+           right: 120px;
            background: var(--card-bg);
            color: var(--accent-color);
            border: 2px solid var(--border-color);
@@ -4402,7 +4402,7 @@ app.get('/', requireAuth, (req, res) => {
          .logout-btn {
            position: absolute;
            top: 20px;
-           right: 70px;
+           right: 20px;
            background: var(--card-bg);
            color: var(--danger-color);
            border: 2px solid var(--border-color);
@@ -4427,7 +4427,7 @@ app.get('/', requireAuth, (req, res) => {
          @media (max-width: 768px) {
            .battery-btn {
              top: 10px;
-             right: 116px;
+             right: 72px;
              width: 32px;
              height: 32px;
              font-size: 16px;
@@ -4435,7 +4435,7 @@ app.get('/', requireAuth, (req, res) => {
            
            .settings-btn {
              top: 10px;
-             right: 72px;
+             right: 46px;
              width: 32px;
              height: 32px;
              font-size: 16px;
