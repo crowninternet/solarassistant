@@ -2882,21 +2882,30 @@ app.get('/battery', requireAuth, (req, res) => {
           datasets: [
             {
               label: 'Battery 1',
-              data: filterLastHour(batteryData.history.power.battery_1),
+              data: filterLastHour(batteryData.history.power.battery_1).map(point => ({
+                x: point.timestamp,
+                y: point.value
+              })),
               backgroundColor: 'rgba(39, 174, 96, 0.7)',
               borderColor: '#27ae60',
               borderWidth: 1
             },
             {
               label: 'Battery 2',
-              data: filterLastHour(batteryData.history.power.battery_2),
+              data: filterLastHour(batteryData.history.power.battery_2).map(point => ({
+                x: point.timestamp,
+                y: point.value
+              })),
               backgroundColor: 'rgba(52, 152, 219, 0.7)',
               borderColor: '#3498db',
               borderWidth: 1
             },
             {
               label: 'Battery 3',
-              data: filterLastHour(batteryData.history.power.battery_3),
+              data: filterLastHour(batteryData.history.power.battery_3).map(point => ({
+                x: point.timestamp,
+                y: point.value
+              })),
               backgroundColor: 'rgba(243, 156, 18, 0.7)',
               borderColor: '#f39c12',
               borderWidth: 1
@@ -2914,21 +2923,30 @@ app.get('/battery', requireAuth, (req, res) => {
           datasets: [
             {
               label: 'Battery 1',
-              data: filterLastHour(batteryData.history.temperature.battery_1),
+              data: filterLastHour(batteryData.history.temperature.battery_1).map(point => ({
+                x: point.timestamp,
+                y: point.value
+              })),
               backgroundColor: 'rgba(39, 174, 96, 0.7)',
               borderColor: '#27ae60',
               borderWidth: 1
             },
             {
               label: 'Battery 2',
-              data: filterLastHour(batteryData.history.temperature.battery_2),
+              data: filterLastHour(batteryData.history.temperature.battery_2).map(point => ({
+                x: point.timestamp,
+                y: point.value
+              })),
               backgroundColor: 'rgba(52, 152, 219, 0.7)',
               borderColor: '#3498db',
               borderWidth: 1
             },
             {
               label: 'Battery 3',
-              data: filterLastHour(batteryData.history.temperature.battery_3),
+              data: filterLastHour(batteryData.history.temperature.battery_3).map(point => ({
+                x: point.timestamp,
+                y: point.value
+              })),
               backgroundColor: 'rgba(243, 156, 18, 0.7)',
               borderColor: '#f39c12',
               borderWidth: 1
@@ -2946,21 +2964,30 @@ app.get('/battery', requireAuth, (req, res) => {
           datasets: [
             {
               label: 'Battery 1',
-              data: filterLastHour(batteryData.history.voltage.battery_1),
+              data: filterLastHour(batteryData.history.voltage.battery_1).map(point => ({
+                x: point.timestamp,
+                y: point.value
+              })),
               backgroundColor: 'rgba(39, 174, 96, 0.7)',
               borderColor: '#27ae60',
               borderWidth: 1
             },
             {
               label: 'Battery 2',
-              data: filterLastHour(batteryData.history.voltage.battery_2),
+              data: filterLastHour(batteryData.history.voltage.battery_2).map(point => ({
+                x: point.timestamp,
+                y: point.value
+              })),
               backgroundColor: 'rgba(52, 152, 219, 0.7)',
               borderColor: '#3498db',
               borderWidth: 1
             },
             {
               label: 'Battery 3',
-              data: filterLastHour(batteryData.history.voltage.battery_3),
+              data: filterLastHour(batteryData.history.voltage.battery_3).map(point => ({
+                x: point.timestamp,
+                y: point.value
+              })),
               backgroundColor: 'rgba(243, 156, 18, 0.7)',
               borderColor: '#f39c12',
               borderWidth: 1
@@ -3065,10 +3092,6 @@ app.get('/battery', requireAuth, (req, res) => {
       return {
         responsive: true,
         maintainAspectRatio: false,
-        parsing: {
-          xAxisKey: 'timestamp',
-          yAxisKey: 'value'
-        },
         plugins: {
           legend: {
             display: true,
@@ -3085,7 +3108,8 @@ app.get('/battery', requireAuth, (req, res) => {
             },
             ticks: { color: '#a0a0a0' },
             grid: { display: false },
-            stacked: false
+            stacked: false,
+            offset: true
           },
           y: {
             beginAtZero: true,
@@ -3099,8 +3123,9 @@ app.get('/battery', requireAuth, (req, res) => {
             stacked: false
           }
         },
-        barPercentage: 0.9,
-        categoryPercentage: 0.8
+        barPercentage: 0.6,
+        categoryPercentage: 0.8,
+        offset: true
       };
     }
     
