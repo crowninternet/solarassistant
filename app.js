@@ -2866,65 +2866,68 @@ app.get('/battery', requireAuth, (req, res) => {
     }
     
     function createCharts() {
-      // Power Flow Chart
+      // Power Flow Chart (Bar Chart)
       const powerCtx = document.getElementById('powerChart').getContext('2d');
       charts.power = new Chart(powerCtx, {
-        type: 'line',
+        type: 'bar',
         data: {
           datasets: [
             {
               label: 'Battery 1',
               data: filterLastHour(batteryData.history.power.battery_1),
+              backgroundColor: 'rgba(39, 174, 96, 0.7)',
               borderColor: '#27ae60',
-              backgroundColor: 'rgba(39, 174, 96, 0.1)',
-              tension: 0.4
+              borderWidth: 1
             },
             {
               label: 'Battery 2',
               data: filterLastHour(batteryData.history.power.battery_2),
+              backgroundColor: 'rgba(52, 152, 219, 0.7)',
               borderColor: '#3498db',
-              backgroundColor: 'rgba(52, 152, 219, 0.1)',
-              tension: 0.4
+              borderWidth: 1
             },
             {
               label: 'Battery 3',
               data: filterLastHour(batteryData.history.power.battery_3),
+              backgroundColor: 'rgba(243, 156, 18, 0.7)',
               borderColor: '#f39c12',
-              backgroundColor: 'rgba(243, 156, 18, 0.1)',
-              tension: 0.4
+              borderWidth: 1
             }
           ]
         },
-        options: getChartOptions('Power (W)')
+        options: getBarChartOptions('Power (W)')
       });
       
-      // Temperature Chart
+      // Temperature Chart (Bar Chart)
       const tempCtx = document.getElementById('tempChart').getContext('2d');
       charts.temp = new Chart(tempCtx, {
-        type: 'line',
+        type: 'bar',
         data: {
           datasets: [
             {
               label: 'Battery 1',
               data: filterLastHour(batteryData.history.temperature.battery_1),
+              backgroundColor: 'rgba(39, 174, 96, 0.7)',
               borderColor: '#27ae60',
-              tension: 0.4
+              borderWidth: 1
             },
             {
               label: 'Battery 2',
               data: filterLastHour(batteryData.history.temperature.battery_2),
+              backgroundColor: 'rgba(52, 152, 219, 0.7)',
               borderColor: '#3498db',
-              tension: 0.4
+              borderWidth: 1
             },
             {
               label: 'Battery 3',
               data: filterLastHour(batteryData.history.temperature.battery_3),
+              backgroundColor: 'rgba(243, 156, 18, 0.7)',
               borderColor: '#f39c12',
-              tension: 0.4
+              borderWidth: 1
             }
           ]
         },
-        options: getChartOptions('Temperature (°F)')
+        options: getBarChartOptions('Temperature (°F)')
       });
       
       // Voltage Chart
@@ -3044,6 +3047,49 @@ app.get('/battery', requireAuth, (req, res) => {
             }
           }
         }
+      };
+    }
+    
+    function getBarChartOptions(yLabel) {
+      return {
+        responsive: true,
+        maintainAspectRatio: false,
+        parsing: {
+          xAxisKey: 'timestamp',
+          yAxisKey: 'value'
+        },
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+            labels: { color: '#a0a0a0' }
+          }
+        },
+        scales: {
+          x: {
+            type: 'time',
+            time: {
+              unit: 'minute',
+              displayFormats: { minute: 'HH:mm' }
+            },
+            ticks: { color: '#a0a0a0' },
+            grid: { display: false },
+            stacked: false
+          },
+          y: {
+            beginAtZero: true,
+            ticks: { color: '#a0a0a0' },
+            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+            title: {
+              display: true,
+              text: yLabel,
+              color: '#a0a0a0'
+            },
+            stacked: false
+          }
+        },
+        barPercentage: 0.9,
+        categoryPercentage: 0.8
       };
     }
     
