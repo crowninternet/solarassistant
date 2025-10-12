@@ -4934,13 +4934,13 @@ app.get('/', requireAuth, (req, res) => {
             <span class="value-number">${getCurrentValue('solar_assistant/inverter_1/pv_power/state')}</span>
             <span class="unit">W</span>
           </div>
+          <div class="updated">Updated: ${getUpdateTime('solar_assistant/inverter_1/pv_power/state')}</div>
           <div class="solar-array-chart">
             <div class="chart-bar" id="solarArrayChart">
               <div class="bar-segment array1" style="width: 0%; background-color: #20b2aa;"></div>
               <div class="bar-segment array2" style="width: 0%; background-color: #8e44ad;"></div>
             </div>
           </div>
-          <div class="updated">Updated: ${getUpdateTime('solar_assistant/inverter_1/pv_power/state')}</div>
         </div>
       
       <div class="value-card pv-power tooltip" style="border-left-color: #20b2aa;" data-topic="solar_assistant/inverter_1/pv_power_1/state">
