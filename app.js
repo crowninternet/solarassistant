@@ -3043,7 +3043,7 @@ app.get('/', requireAuth, (req, res) => {
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>SolarAssistant Dashboard</title>
-  <!-- CSS Version: 7.1.0 - Manual Charger Test & Code Cleanup -->
+  <!-- CSS Version: 8.15.0 - Battery Runtime Power Balance Update -->
   <script>
     // Aggressive cache busting - Add timestamp to URL if not present
     if (!window.location.search.includes('v=')) {
