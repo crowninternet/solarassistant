@@ -2754,24 +2754,10 @@ app.get('/battery', requireAuth, (req, res) => {
       
       // Overview Cards
       html += '<div class="grid">';
-      html += renderOverviewCard('State of Charge', batteryData.total.soc + '%', 'success');
-      html += renderOverviewCard('Total Power', formatPower(batteryData.total.power), batteryData.total.power > 0 ? 'info' : 'warning');
+      html += renderOverviewCard('State of Charge', (batteryData.total.soc || 0) + '%', 'success');
+      html += renderOverviewCard('Total Power', formatPower(batteryData.total.power), (batteryData.total.power || 0) > 0 ? 'info' : 'warning');
       html += renderOverviewCard('Voltage', (batteryData.total.voltage || 0).toFixed(1) + 'V', 'accent');
       html += renderOverviewCard('Temperature', (batteryData.total.temperature || 0).toFixed(1) + '°F', 'warning');
-      html += '</div>';
-
-      // Individual Battery Power Cards
-      html += '<div class="grid">';
-      html += '<h3 style="grid-column: 1 / -1; margin: 20px 0 10px 0; color: var(--text-primary);">Individual Battery Power</h3>';
-      batteryData.batteries.forEach((battery, index) => {
-        const colors = ['success', 'info', 'warning'];
-        const powerValue = battery.power || 0;
-        html += renderOverviewCard(
-          `Battery ${battery.id} Power`, 
-          formatPower(powerValue), 
-          powerValue > 0 ? colors[index] : 'danger'
-        );
-      });
       html += '</div>';
       
       // Individual Battery Comparison
@@ -2828,46 +2814,46 @@ app.get('/battery', requireAuth, (req, res) => {
     function renderBatteryCard(battery) {
       const cellDiff = (battery.cellVoltage.highest - battery.cellVoltage.lowest).toFixed(3);
       
-      return \`
+      return `
         <div class="battery-card">
-          <div class="health-badge">\${battery.soh || 100}% Health</div>
-          <h4>Battery \${battery.id}</h4>
+          <div class="health-badge">${battery.soh || 100}% Health</div>
+          <h4>Battery ${battery.id}</h4>
           
           <div class="stat-grid">
             <div class="stat-item">
-              <div class="stat-item-value">\${(battery.voltage || 0).toFixed(1)}V</div>
+              <div class="stat-item-value">${(battery.voltage || 0).toFixed(1)}V</div>
               <div class="stat-item-label">Voltage</div>
             </div>
             <div class="stat-item">
-              <div class="stat-item-value">\${(battery.current || 0).toFixed(1)}A</div>
+              <div class="stat-item-value">${(battery.current || 0).toFixed(1)}A</div>
               <div class="stat-item-label">Current</div>
             </div>
             <div class="stat-item">
-              <div class="stat-item-value">\${(battery.temperature || 0).toFixed(1)}°F</div>
+              <div class="stat-item-value">${(battery.temperature || 0).toFixed(1)}°F</div>
               <div class="stat-item-label">Temperature</div>
             </div>
             <div class="stat-item">
-              <div class="stat-item-value">\${battery.soc || 0}%</div>
+              <div class="stat-item-value">${battery.soc || 0}%</div>
               <div class="stat-item-label">SOC</div>
             </div>
           </div>
           
           <div class="cell-balance-grid">
             <div class="cell-stat">
-              <div class="cell-stat-value">\${(battery.cellVoltage.average || 0).toFixed(3)}V</div>
+              <div class="cell-stat-value">${(battery.cellVoltage.average || 0).toFixed(3)}V</div>
               <div class="cell-stat-label">Avg Cell</div>
             </div>
             <div class="cell-stat">
-              <div class="cell-stat-value">\${(battery.cellVoltage.highest || 0).toFixed(3)}V</div>
+              <div class="cell-stat-value">${(battery.cellVoltage.highest || 0).toFixed(3)}V</div>
               <div class="cell-stat-label">Max Cell</div>
             </div>
             <div class="cell-stat">
-              <div class="cell-stat-value">\${cellDiff}V</div>
+              <div class="cell-stat-value">${cellDiff}V</div>
               <div class="cell-stat-label">Difference</div>
             </div>
           </div>
         </div>
-      \`;
+      `;
     }
     
     function formatPower(power) {
