@@ -2753,18 +2753,16 @@ app.get('/battery', requireAuth, (req, res) => {
       let html = '';
       
       // Overview Cards
-      html += '<div class="grid">';
-      html += renderOverviewCard('State of Charge', (batteryData.total.soc || 0) + '%', 'success');
-      html += renderOverviewCard('Total Power', formatPower(batteryData.total.power), (batteryData.total.power || 0) > 0 ? 'info' : 'warning');
-      html += renderOverviewCard('Voltage', (batteryData.total.voltage || 0).toFixed(1) + 'V', 'accent');
-      html += renderOverviewCard('Temperature', (batteryData.total.temperature || 0).toFixed(1) + '°F', 'warning');
+      html += '<div class="grid" id="overview-cards">';
+      html += '<div class="card"><h3 style="color: #27ae60">State of Charge</h3><div class="stat-value" id="total-soc">Loading...</div></div>';
+      html += '<div class="card"><h3 style="color: #3498db">Total Power</h3><div class="stat-value" id="total-power">Loading...</div></div>';
+      html += '<div class="card"><h3 style="color: #667eea">Voltage</h3><div class="stat-value" id="total-voltage">Loading...</div></div>';
+      html += '<div class="card"><h3 style="color: #f39c12">Temperature</h3><div class="stat-value" id="total-temperature">Loading...</div></div>';
       html += '</div>';
       
       // Individual Battery Comparison
-      html += '<div class="battery-comparison">';
-      batteryData.batteries.forEach(battery => {
-        html += renderBatteryCard(battery);
-      });
+      html += '<div class="battery-comparison" id="battery-cards">';
+      html += '<div class="loading">Loading battery data...</div>';
       html += '</div>';
       
       // Charts
@@ -2792,6 +2790,32 @@ app.get('/battery', requireAuth, (req, res) => {
       
       // Create charts
       createCharts();
+      
+      // Update overview cards and battery cards with actual data
+      updateOverviewCards();
+      updateBatteryCards();
+    }
+    
+    function updateOverviewCards() {
+      if (!batteryData) return;
+      
+      document.getElementById('total-soc').textContent = (batteryData.total.soc || 0) + '%';
+      document.getElementById('total-power').textContent = formatPower(batteryData.total.power);
+      document.getElementById('total-voltage').textContent = (batteryData.total.voltage || 0).toFixed(1) + 'V';
+      document.getElementById('total-temperature').textContent = (batteryData.total.temperature || 0).toFixed(1) + '°F';
+    }
+    
+    function updateBatteryCards() {
+      if (!batteryData) return;
+      
+      const container = document.getElementById('battery-cards');
+      let html = '';
+      
+      batteryData.batteries.forEach(battery => {
+        html += renderBatteryCard(battery);
+      });
+      
+      container.innerHTML = html;
     }
     
     function renderOverviewCard(label, value, color) {
@@ -2803,57 +2827,51 @@ app.get('/battery', requireAuth, (req, res) => {
         accent: '#667eea'
       };
       
-      return `
-        <div class="card">
-          <h3 style="color: ${colors[color] || colors.accent}">${label}</h3>
-          <div class="stat-value">${value}</div>
-        </div>
-      `;
+      return '<div class="card">' +
+        '<h3 style="color: ' + (colors[color] || colors.accent) + '">' + label + '</h3>' +
+        '<div class="stat-value">' + value + '</div>' +
+        '</div>';
     }
     
     function renderBatteryCard(battery) {
       const cellDiff = (battery.cellVoltage.highest - battery.cellVoltage.lowest).toFixed(3);
       
-      return `
-        <div class="battery-card">
-          <div class="health-badge">${battery.soh || 100}% Health</div>
-          <h4>Battery ${battery.id}</h4>
-          
-          <div class="stat-grid">
-            <div class="stat-item">
-              <div class="stat-item-value">${(battery.voltage || 0).toFixed(1)}V</div>
-              <div class="stat-item-label">Voltage</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-item-value">${(battery.current || 0).toFixed(1)}A</div>
-              <div class="stat-item-label">Current</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-item-value">${(battery.temperature || 0).toFixed(1)}°F</div>
-              <div class="stat-item-label">Temperature</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-item-value">${battery.soc || 0}%</div>
-              <div class="stat-item-label">SOC</div>
-            </div>
-          </div>
-          
-          <div class="cell-balance-grid">
-            <div class="cell-stat">
-              <div class="cell-stat-value">${(battery.cellVoltage.average || 0).toFixed(3)}V</div>
-              <div class="cell-stat-label">Avg Cell</div>
-            </div>
-            <div class="cell-stat">
-              <div class="cell-stat-value">${(battery.cellVoltage.highest || 0).toFixed(3)}V</div>
-              <div class="cell-stat-label">Max Cell</div>
-            </div>
-            <div class="cell-stat">
-              <div class="cell-stat-value">${cellDiff}V</div>
-              <div class="cell-stat-label">Difference</div>
-            </div>
-          </div>
-        </div>
-      `;
+      return '<div class="battery-card">' +
+        '<div class="health-badge">' + (battery.soh || 100) + '% Health</div>' +
+        '<h4>Battery ' + battery.id + '</h4>' +
+        '<div class="stat-grid">' +
+          '<div class="stat-item">' +
+            '<div class="stat-item-value">' + (battery.voltage || 0).toFixed(1) + 'V</div>' +
+            '<div class="stat-item-label">Voltage</div>' +
+          '</div>' +
+          '<div class="stat-item">' +
+            '<div class="stat-item-value">' + (battery.current || 0).toFixed(1) + 'A</div>' +
+            '<div class="stat-item-label">Current</div>' +
+          '</div>' +
+          '<div class="stat-item">' +
+            '<div class="stat-item-value">' + (battery.temperature || 0).toFixed(1) + '°F</div>' +
+            '<div class="stat-item-label">Temperature</div>' +
+          '</div>' +
+          '<div class="stat-item">' +
+            '<div class="stat-item-value">' + (battery.soc || 0) + '%</div>' +
+            '<div class="stat-item-label">SOC</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="cell-balance-grid">' +
+          '<div class="cell-stat">' +
+            '<div class="cell-stat-value">' + (battery.cellVoltage.average || 0).toFixed(3) + 'V</div>' +
+            '<div class="cell-stat-label">Avg Cell</div>' +
+          '</div>' +
+          '<div class="cell-stat">' +
+            '<div class="cell-stat-value">' + (battery.cellVoltage.highest || 0).toFixed(3) + 'V</div>' +
+            '<div class="cell-stat-label">Max Cell</div>' +
+          '</div>' +
+          '<div class="cell-stat">' +
+            '<div class="cell-stat-value">' + cellDiff + 'V</div>' +
+            '<div class="cell-stat-label">Difference</div>' +
+          '</div>' +
+        '</div>' +
+        '</div>';
     }
     
     function formatPower(power) {
@@ -3166,14 +3184,9 @@ app.get('/battery', requireAuth, (req, res) => {
     }
     
     function updateBatteryValues() {
-      // Update overview cards
-      const cards = document.querySelectorAll('.stat-value');
-      if (cards.length >= 4) {
-        cards[0].textContent = batteryData.total.soc + '%';
-        cards[1].textContent = formatPower(batteryData.total.power);
-        cards[2].textContent = (batteryData.total.voltage || 0).toFixed(1) + 'V';
-        cards[3].textContent = (batteryData.total.temperature || 0).toFixed(1) + '°F';
-      }
+      // Update overview cards and battery cards with latest data
+      updateOverviewCards();
+      updateBatteryCards();
       
       // Update charts
       if (charts.power) {
