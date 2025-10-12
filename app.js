@@ -2874,6 +2874,18 @@ app.get('/battery', requireAuth, (req, res) => {
       console.log('Temp history battery_1:', batteryData.history.temperature.battery_1?.length || 0, 'points');
       console.log('Voltage history battery_1:', batteryData.history.voltage.battery_1?.length || 0, 'points');
       
+      // Debug: Show sample data
+      if (batteryData.history.power.battery_1 && batteryData.history.power.battery_1.length > 0) {
+        console.log('Sample battery 1 power data:', JSON.stringify(batteryData.history.power.battery_1[0], null, 2));
+      }
+      
+      // Debug: Check filtered data
+      const filteredPower1 = filterLastHour(batteryData.history.power.battery_1);
+      console.log('Filtered power 1 data:', filteredPower1?.length || 0, 'points');
+      if (filteredPower1 && filteredPower1.length > 0) {
+        console.log('Sample filtered data:', JSON.stringify(filteredPower1[0], null, 2));
+      }
+      
       // Power Flow Chart (Bar Chart)
       const powerCtx = document.getElementById('powerChart').getContext('2d');
       charts.power = new Chart(powerCtx, {
@@ -2883,8 +2895,8 @@ app.get('/battery', requireAuth, (req, res) => {
             {
               label: 'Battery 1',
               data: filterLastHour(batteryData.history.power.battery_1).map(point => ({
-                x: point.timestamp,
-                y: point.value
+                timestamp: new Date(point.timestamp),
+                value: point.value
               })),
               backgroundColor: 'rgba(39, 174, 96, 0.7)',
               borderColor: '#27ae60',
@@ -2893,8 +2905,8 @@ app.get('/battery', requireAuth, (req, res) => {
             {
               label: 'Battery 2',
               data: filterLastHour(batteryData.history.power.battery_2).map(point => ({
-                x: point.timestamp,
-                y: point.value
+                timestamp: new Date(point.timestamp),
+                value: point.value
               })),
               backgroundColor: 'rgba(52, 152, 219, 0.7)',
               borderColor: '#3498db',
@@ -2903,8 +2915,8 @@ app.get('/battery', requireAuth, (req, res) => {
             {
               label: 'Battery 3',
               data: filterLastHour(batteryData.history.power.battery_3).map(point => ({
-                x: point.timestamp,
-                y: point.value
+                timestamp: new Date(point.timestamp),
+                value: point.value
               })),
               backgroundColor: 'rgba(243, 156, 18, 0.7)',
               borderColor: '#f39c12',
@@ -2924,8 +2936,8 @@ app.get('/battery', requireAuth, (req, res) => {
             {
               label: 'Battery 1',
               data: filterLastHour(batteryData.history.temperature.battery_1).map(point => ({
-                x: point.timestamp,
-                y: point.value
+                timestamp: new Date(point.timestamp),
+                value: point.value
               })),
               backgroundColor: 'rgba(39, 174, 96, 0.7)',
               borderColor: '#27ae60',
@@ -2934,8 +2946,8 @@ app.get('/battery', requireAuth, (req, res) => {
             {
               label: 'Battery 2',
               data: filterLastHour(batteryData.history.temperature.battery_2).map(point => ({
-                x: point.timestamp,
-                y: point.value
+                timestamp: new Date(point.timestamp),
+                value: point.value
               })),
               backgroundColor: 'rgba(52, 152, 219, 0.7)',
               borderColor: '#3498db',
@@ -2944,8 +2956,8 @@ app.get('/battery', requireAuth, (req, res) => {
             {
               label: 'Battery 3',
               data: filterLastHour(batteryData.history.temperature.battery_3).map(point => ({
-                x: point.timestamp,
-                y: point.value
+                timestamp: new Date(point.timestamp),
+                value: point.value
               })),
               backgroundColor: 'rgba(243, 156, 18, 0.7)',
               borderColor: '#f39c12',
@@ -2965,8 +2977,8 @@ app.get('/battery', requireAuth, (req, res) => {
             {
               label: 'Battery 1',
               data: filterLastHour(batteryData.history.voltage.battery_1).map(point => ({
-                x: point.timestamp,
-                y: point.value
+                timestamp: new Date(point.timestamp),
+                value: point.value
               })),
               backgroundColor: 'rgba(39, 174, 96, 0.7)',
               borderColor: '#27ae60',
@@ -2975,8 +2987,8 @@ app.get('/battery', requireAuth, (req, res) => {
             {
               label: 'Battery 2',
               data: filterLastHour(batteryData.history.voltage.battery_2).map(point => ({
-                x: point.timestamp,
-                y: point.value
+                timestamp: new Date(point.timestamp),
+                value: point.value
               })),
               backgroundColor: 'rgba(52, 152, 219, 0.7)',
               borderColor: '#3498db',
@@ -2985,8 +2997,8 @@ app.get('/battery', requireAuth, (req, res) => {
             {
               label: 'Battery 3',
               data: filterLastHour(batteryData.history.voltage.battery_3).map(point => ({
-                x: point.timestamp,
-                y: point.value
+                timestamp: new Date(point.timestamp),
+                value: point.value
               })),
               backgroundColor: 'rgba(243, 156, 18, 0.7)',
               borderColor: '#f39c12',
