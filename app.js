@@ -4936,8 +4936,8 @@ app.get('/', requireAuth, (req, res) => {
           </div>
           <div class="solar-array-chart">
             <div class="chart-bar" id="solarArrayChart">
-              <div class="bar-segment array1" style="width: ${getArrayPercentage('array1')}%; background-color: #20b2aa;"></div>
-              <div class="bar-segment array2" style="width: ${getArrayPercentage('array2')}%; background-color: #8e44ad;"></div>
+              <div class="bar-segment array1" style="width: 0%; background-color: #20b2aa;"></div>
+              <div class="bar-segment array2" style="width: 0%; background-color: #8e44ad;"></div>
             </div>
           </div>
           <div class="updated">Updated: ${getUpdateTime('solar_assistant/inverter_1/pv_power/state')}</div>
@@ -5638,6 +5638,7 @@ app.get('/', requireAuth, (req, res) => {
           .then(response => response.json())
           .then(currentData => {
             updatePowerBalance(currentData.data);
+            updateSolarArrayChart(currentData.data);
           })
           .catch(error => console.error('Error loading initial data:', error));
         
@@ -5898,29 +5899,41 @@ app.get('/', requireAuth, (req, res) => {
       const array1Topic = 'solar_assistant/inverter_1/pv_power_1/state';
       const array2Topic = 'solar_assistant/inverter_1/pv_power_2/state';
       
+      console.log('Updating solar array chart with data:', data);
+      
       if (data[array1Topic] && data[array2Topic]) {
         const array1Power = parseFloat(data[array1Topic].value) || 0;
         const array2Power = parseFloat(data[array2Topic].value) || 0;
         const totalPower = array1Power + array2Power;
         
+        console.log('Array powers - Array1:', array1Power, 'Array2:', array2Power, 'Total:', totalPower);
+        
         const chart = document.getElementById('solarArrayChart');
+        console.log('Chart element found:', chart);
+        
         if (chart) {
           const array1Segment = chart.querySelector('.array1');
           const array2Segment = chart.querySelector('.array2');
+          
+          console.log('Array segments found - Array1:', array1Segment, 'Array2:', array2Segment);
           
           if (array1Segment && array2Segment) {
             if (totalPower === 0) {
               array1Segment.style.width = '0%';
               array2Segment.style.width = '0%';
+              console.log('Set both arrays to 0% width');
             } else {
               const array1Percentage = Math.round((array1Power / totalPower) * 100);
               const array2Percentage = Math.round((array2Power / totalPower) * 100);
               
               array1Segment.style.width = array1Percentage + '%';
               array2Segment.style.width = array2Percentage + '%';
+              console.log('Updated array widths - Array1:', array1Percentage + '%', 'Array2:', array2Percentage + '%');
             }
           }
         }
+      } else {
+        console.log('Missing array data - Array1 topic:', data[array1Topic], 'Array2 topic:', data[array2Topic]);
       }
     }
     
