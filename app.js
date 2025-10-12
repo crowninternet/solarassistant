@@ -90,7 +90,26 @@ const TRACKED_TOPICS = [
   'solar_assistant/inverter_1/pv_power_2/state',      // Solar array 2 production
   'solar_assistant/total/battery_state_of_charge/state', // Battery SOC %
   'solar_assistant/total/battery_power/state',        // Battery power (positive=charging, negative=discharging)
-  'solar_assistant/inverter_1/load_power/state'       // Power consumption
+  'solar_assistant/inverter_1/load_power/state',      // Power consumption
+  // Individual battery metrics
+  'solar_assistant/battery_1/voltage/state',
+  'solar_assistant/battery_2/voltage/state',
+  'solar_assistant/battery_3/voltage/state',
+  'solar_assistant/battery_1/current/state',
+  'solar_assistant/battery_2/current/state',
+  'solar_assistant/battery_3/current/state',
+  'solar_assistant/battery_1/temperature/state',
+  'solar_assistant/battery_2/temperature/state',
+  'solar_assistant/battery_3/temperature/state',
+  'solar_assistant/battery_1/state_of_charge/state',
+  'solar_assistant/battery_2/state_of_charge/state',
+  'solar_assistant/battery_3/state_of_charge/state',
+  'solar_assistant/battery_1/power/state',
+  'solar_assistant/battery_2/power/state',
+  'solar_assistant/battery_3/power/state',
+  // Battery totals
+  'solar_assistant/total/battery_temperature/state',
+  'solar_assistant/inverter_1/battery_current/state'
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -2417,6 +2436,676 @@ app.get('/settings-page', requireAuth, (req, res) => {
   `);
 });
 
+// ═══════════════════════════════════════════════════════════════════════════
+// BATTERY DETAILS PAGE
+// ═══════════════════════════════════════════════════════════════════════════
+app.get('/battery', requireAuth, (req, res) => {
+  res.send(`
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Battery Details - SolarAssistant Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    :root {
+      --bg-gradient-start: #1a1a2e;
+      --bg-gradient-end: #16213e;
+      --card-bg: #1e1e2e;
+      --text-primary: #f0f0f0;
+      --text-secondary: #d0d0d0;
+      --text-muted: #a0a0a0;
+      --border-color: #404050;
+      --success-color: #27ae60;
+      --warning-color: #f39c12;
+      --danger-color: #e74c3c;
+      --info-color: #3498db;
+      --accent-color: #667eea;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+      min-height: 100vh;
+      padding: 20px;
+      color: var(--text-primary);
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      background: var(--card-bg);
+      padding: 20px 30px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border: 1px solid var(--border-color);
+    }
+    
+    h1 {
+      color: var(--text-primary);
+      font-size: 28px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-secondary {
+      background: var(--border-color);
+      color: var(--text-primary);
+    }
+    
+    .btn-secondary:hover {
+      background: var(--accent-color);
+      color: white;
+    }
+    
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .card h3 {
+      font-size: 16px;
+      color: var(--text-secondary);
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .stat-value {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 5px;
+    }
+    
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+      margin-top: 15px;
+    }
+    
+    .stat-item {
+      text-align: center;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+    }
+    
+    .stat-item-value {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    
+    .stat-item-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 5px;
+    }
+    
+    .battery-comparison {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .battery-card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 20px;
+      border: 2px solid var(--border-color);
+      position: relative;
+    }
+    
+    .battery-card h4 {
+      font-size: 18px;
+      margin-bottom: 15px;
+      color: var(--success-color);
+    }
+    
+    .health-badge {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: var(--success-color);
+      color: white;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    
+    .chart-container {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid var(--border-color);
+      margin-bottom: 20px;
+    }
+    
+    .chart-container h3 {
+      font-size: 18px;
+      margin-bottom: 15px;
+      color: var(--text-primary);
+    }
+    
+    canvas {
+      max-height: 300px;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-muted);
+      font-size: 16px;
+    }
+    
+    .error {
+      background: rgba(231, 76, 60, 0.1);
+      border: 1px solid var(--danger-color);
+      color: var(--danger-color);
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    
+    .cell-balance-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 10px;
+    }
+    
+    .cell-stat {
+      background: rgba(255, 255, 255, 0.02);
+      padding: 10px;
+      border-radius: 6px;
+      text-align: center;
+      border: 1px solid var(--border-color);
+    }
+    
+    .cell-stat-value {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    
+    .cell-stat-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+    
+    @media (max-width: 768px) {
+      .battery-comparison {
+        grid-template-columns: 1fr;
+      }
+      
+      h1 {
+        font-size: 22px;
+      }
+      
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🔋 Battery Details</h1>
+      <button onclick="window.location.href='/'" class="btn btn-secondary">← Back to Dashboard</button>
+    </div>
+    
+    <div id="battery-content" class="loading">Loading battery data...</div>
+  </div>
+  
+  <script>
+    let batteryData = null;
+    let charts = {};
+    
+    // Load battery data on page load
+    document.addEventListener('DOMContentLoaded', loadBatteryData);
+    
+    async function loadBatteryData() {
+      try {
+        const response = await fetch('/data/battery', {
+          credentials: 'same-origin'
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to load battery data');
+        }
+        
+        batteryData = await response.json();
+        renderBatteryPage();
+        
+        // Refresh every 5 seconds
+        setInterval(refreshBatteryData, 5000);
+      } catch (error) {
+        console.error('Error loading battery data:', error);
+        document.getElementById('battery-content').innerHTML = 
+          '<div class="error">Error loading battery data: ' + error.message + '</div>';
+      }
+    }
+    
+    async function refreshBatteryData() {
+      try {
+        const response = await fetch('/data/battery', {
+          credentials: 'same-origin'
+        });
+        
+        if (response.ok) {
+          batteryData = await response.json();
+          updateBatteryValues();
+        }
+      } catch (error) {
+        console.error('Error refreshing data:', error);
+      }
+    }
+    
+    function renderBatteryPage() {
+      const container = document.getElementById('battery-content');
+      
+      let html = '';
+      
+      // Overview Cards
+      html += '<div class="grid">';
+      html += renderOverviewCard('State of Charge', batteryData.total.soc + '%', 'success');
+      html += renderOverviewCard('Total Power', formatPower(batteryData.total.power), batteryData.total.power > 0 ? 'info' : 'warning');
+      html += renderOverviewCard('Voltage', (batteryData.total.voltage || 0).toFixed(1) + 'V', 'accent');
+      html += renderOverviewCard('Temperature', (batteryData.total.temperature || 0).toFixed(1) + '°F', 'warning');
+      html += '</div>';
+      
+      // Individual Battery Comparison
+      html += '<div class="battery-comparison">';
+      batteryData.batteries.forEach(battery => {
+        html += renderBatteryCard(battery);
+      });
+      html += '</div>';
+      
+      // Charts
+      html += '<div class="chart-container">';
+      html += '<h3>Battery Power Flow (Past Hour)</h3>';
+      html += '<canvas id="powerChart"></canvas>';
+      html += '</div>';
+      
+      html += '<div class="chart-container">';
+      html += '<h3>Battery Temperatures (Past Hour)</h3>';
+      html += '<canvas id="tempChart"></canvas>';
+      html += '</div>';
+      
+      html += '<div class="chart-container">';
+      html += '<h3>Individual Battery Voltages (Past Hour)</h3>';
+      html += '<canvas id="voltageChart"></canvas>';
+      html += '</div>';
+      
+      html += '<div class="chart-container">';
+      html += '<h3>Cell Voltage Balance</h3>';
+      html += '<canvas id="cellBalanceChart"></canvas>';
+      html += '</div>';
+      
+      container.innerHTML = html;
+      
+      // Create charts
+      createCharts();
+    }
+    
+    function renderOverviewCard(label, value, color) {
+      const colors = {
+        success: '#27ae60',
+        warning: '#f39c12',
+        danger: '#e74c3c',
+        info: '#3498db',
+        accent: '#667eea'
+      };
+      
+      return \`
+        <div class="card">
+          <h3 style="color: \${colors[color] || colors.accent}">\${label}</h3>
+          <div class="stat-value">\${value}</div>
+        </div>
+      \`;
+    }
+    
+    function renderBatteryCard(battery) {
+      const cellDiff = (battery.cellVoltage.highest - battery.cellVoltage.lowest).toFixed(3);
+      
+      return \`
+        <div class="battery-card">
+          <div class="health-badge">\${battery.soh || 100}% Health</div>
+          <h4>Battery \${battery.id}</h4>
+          
+          <div class="stat-grid">
+            <div class="stat-item">
+              <div class="stat-item-value">\${(battery.voltage || 0).toFixed(1)}V</div>
+              <div class="stat-item-label">Voltage</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-item-value">\${(battery.current || 0).toFixed(1)}A</div>
+              <div class="stat-item-label">Current</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-item-value">\${(battery.temperature || 0).toFixed(1)}°F</div>
+              <div class="stat-item-label">Temperature</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-item-value">\${battery.soc || 0}%</div>
+              <div class="stat-item-label">SOC</div>
+            </div>
+          </div>
+          
+          <div class="cell-balance-grid">
+            <div class="cell-stat">
+              <div class="cell-stat-value">\${(battery.cellVoltage.average || 0).toFixed(3)}V</div>
+              <div class="cell-stat-label">Avg Cell</div>
+            </div>
+            <div class="cell-stat">
+              <div class="cell-stat-value">\${(battery.cellVoltage.highest || 0).toFixed(3)}V</div>
+              <div class="cell-stat-label">Max Cell</div>
+            </div>
+            <div class="cell-stat">
+              <div class="cell-stat-value">\${cellDiff}V</div>
+              <div class="cell-stat-label">Difference</div>
+            </div>
+          </div>
+        </div>
+      \`;
+    }
+    
+    function formatPower(power) {
+      if (!power) return '0W';
+      const abs = Math.abs(power);
+      if (abs >= 1000) {
+        return (power / 1000).toFixed(2) + 'kW';
+      }
+      return Math.round(power) + 'W';
+    }
+    
+    function createCharts() {
+      // Power Flow Chart
+      const powerCtx = document.getElementById('powerChart').getContext('2d');
+      charts.power = new Chart(powerCtx, {
+        type: 'line',
+        data: {
+          datasets: [
+            {
+              label: 'Battery 1',
+              data: filterLastHour(batteryData.history.power.battery_1),
+              borderColor: '#27ae60',
+              backgroundColor: 'rgba(39, 174, 96, 0.1)',
+              tension: 0.4
+            },
+            {
+              label: 'Battery 2',
+              data: filterLastHour(batteryData.history.power.battery_2),
+              borderColor: '#3498db',
+              backgroundColor: 'rgba(52, 152, 219, 0.1)',
+              tension: 0.4
+            },
+            {
+              label: 'Battery 3',
+              data: filterLastHour(batteryData.history.power.battery_3),
+              borderColor: '#f39c12',
+              backgroundColor: 'rgba(243, 156, 18, 0.1)',
+              tension: 0.4
+            }
+          ]
+        },
+        options: getChartOptions('Power (W)')
+      });
+      
+      // Temperature Chart
+      const tempCtx = document.getElementById('tempChart').getContext('2d');
+      charts.temp = new Chart(tempCtx, {
+        type: 'line',
+        data: {
+          datasets: [
+            {
+              label: 'Battery 1',
+              data: filterLastHour(batteryData.history.temperature.battery_1),
+              borderColor: '#27ae60',
+              tension: 0.4
+            },
+            {
+              label: 'Battery 2',
+              data: filterLastHour(batteryData.history.temperature.battery_2),
+              borderColor: '#3498db',
+              tension: 0.4
+            },
+            {
+              label: 'Battery 3',
+              data: filterLastHour(batteryData.history.temperature.battery_3),
+              borderColor: '#f39c12',
+              tension: 0.4
+            }
+          ]
+        },
+        options: getChartOptions('Temperature (°F)')
+      });
+      
+      // Voltage Chart
+      const voltageCtx = document.getElementById('voltageChart').getContext('2d');
+      charts.voltage = new Chart(voltageCtx, {
+        type: 'line',
+        data: {
+          datasets: [
+            {
+              label: 'Battery 1',
+              data: filterLastHour(batteryData.history.voltage.battery_1),
+              borderColor: '#27ae60',
+              tension: 0.4
+            },
+            {
+              label: 'Battery 2',
+              data: filterLastHour(batteryData.history.voltage.battery_2),
+              borderColor: '#3498db',
+              tension: 0.4
+            },
+            {
+              label: 'Battery 3',
+              data: filterLastHour(batteryData.history.voltage.battery_3),
+              borderColor: '#f39c12',
+              tension: 0.4
+            }
+          ]
+        },
+        options: getChartOptions('Voltage (V)')
+      });
+      
+      // Cell Balance Chart (bar chart showing current cell voltages)
+      const cellCtx = document.getElementById('cellBalanceChart').getContext('2d');
+      charts.cellBalance = new Chart(cellCtx, {
+        type: 'bar',
+        data: {
+          labels: ['Battery 1 Avg', 'Battery 1 Max', 'Battery 1 Min',
+                   'Battery 2 Avg', 'Battery 2 Max', 'Battery 2 Min',
+                   'Battery 3 Avg', 'Battery 3 Max', 'Battery 3 Min'],
+          datasets: [{
+            label: 'Cell Voltage (V)',
+            data: [
+              batteryData.batteries[0].cellVoltage.average,
+              batteryData.batteries[0].cellVoltage.highest,
+              batteryData.batteries[0].cellVoltage.lowest,
+              batteryData.batteries[1].cellVoltage.average,
+              batteryData.batteries[1].cellVoltage.highest,
+              batteryData.batteries[1].cellVoltage.lowest,
+              batteryData.batteries[2].cellVoltage.average,
+              batteryData.batteries[2].cellVoltage.highest,
+              batteryData.batteries[2].cellVoltage.lowest
+            ],
+            backgroundColor: [
+              '#27ae60', '#2ecc71', '#229954',
+              '#3498db', '#5dade2', '#2874a6',
+              '#f39c12', '#f5b041', '#d68910'
+            ]
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            title: { display: false }
+          },
+          scales: {
+            y: {
+              beginAtZero: false,
+              min: 3.2,
+              max: 3.6,
+              ticks: { color: '#a0a0a0' },
+              grid: { color: 'rgba(255, 255, 255, 0.1)' }
+            },
+            x: {
+              ticks: { color: '#a0a0a0', font: { size: 10 } },
+              grid: { display: false }
+            }
+          }
+        }
+      });
+    }
+    
+    function getChartOptions(yLabel) {
+      return {
+        responsive: true,
+        maintainAspectRatio: false,
+        parsing: {
+          xAxisKey: 'timestamp',
+          yAxisKey: 'value'
+        },
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+            labels: { color: '#a0a0a0' }
+          }
+        },
+        scales: {
+          x: {
+            type: 'time',
+            time: {
+              unit: 'minute',
+              displayFormats: { minute: 'HH:mm' }
+            },
+            ticks: { color: '#a0a0a0' },
+            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+          },
+          y: {
+            beginAtZero: false,
+            ticks: { color: '#a0a0a0' },
+            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+            title: {
+              display: true,
+              text: yLabel,
+              color: '#a0a0a0'
+            }
+          }
+        }
+      };
+    }
+    
+    function filterLastHour(data) {
+      if (!data || data.length === 0) return [];
+      const oneHourAgo = Date.now() - (60 * 60 * 1000);
+      return data.filter(point => new Date(point.timestamp).getTime() > oneHourAgo);
+    }
+    
+    function updateBatteryValues() {
+      // Update overview cards
+      const cards = document.querySelectorAll('.stat-value');
+      if (cards.length >= 4) {
+        cards[0].textContent = batteryData.total.soc + '%';
+        cards[1].textContent = formatPower(batteryData.total.power);
+        cards[2].textContent = (batteryData.total.voltage || 0).toFixed(1) + 'V';
+        cards[3].textContent = (batteryData.total.temperature || 0).toFixed(1) + '°F';
+      }
+      
+      // Update charts
+      if (charts.power) {
+        charts.power.data.datasets[0].data = filterLastHour(batteryData.history.power.battery_1);
+        charts.power.data.datasets[1].data = filterLastHour(batteryData.history.power.battery_2);
+        charts.power.data.datasets[2].data = filterLastHour(batteryData.history.power.battery_3);
+        charts.power.update('none');
+      }
+      
+      if (charts.temp) {
+        charts.temp.data.datasets[0].data = filterLastHour(batteryData.history.temperature.battery_1);
+        charts.temp.data.datasets[1].data = filterLastHour(batteryData.history.temperature.battery_2);
+        charts.temp.data.datasets[2].data = filterLastHour(batteryData.history.temperature.battery_3);
+        charts.temp.update('none');
+      }
+      
+      if (charts.voltage) {
+        charts.voltage.data.datasets[0].data = filterLastHour(batteryData.history.voltage.battery_1);
+        charts.voltage.data.datasets[1].data = filterLastHour(batteryData.history.voltage.battery_2);
+        charts.voltage.data.datasets[2].data = filterLastHour(batteryData.history.voltage.battery_3);
+        charts.voltage.update('none');
+      }
+      
+      if (charts.cellBalance) {
+        charts.cellBalance.data.datasets[0].data = [
+          batteryData.batteries[0].cellVoltage.average,
+          batteryData.batteries[0].cellVoltage.highest,
+          batteryData.batteries[0].cellVoltage.lowest,
+          batteryData.batteries[1].cellVoltage.average,
+          batteryData.batteries[1].cellVoltage.highest,
+          batteryData.batteries[1].cellVoltage.lowest,
+          batteryData.batteries[2].cellVoltage.average,
+          batteryData.batteries[2].cellVoltage.highest,
+          batteryData.batteries[2].cellVoltage.lowest
+        ];
+        charts.cellBalance.update('none');
+      }
+    }
+  </script>
+</body>
+</html>
+  `);
+});
+
 /**
  * GET /login - Login page
  * Serves login HTML (public route)
@@ -2776,6 +3465,74 @@ app.get('/data/daily-stats', authenticateToken, (req, res) => {
     date: dailyStats.date,
     trackingStartTime: earliestTime || 'Just started'
   });
+});
+
+/**
+ * API endpoint - get comprehensive battery data
+ */
+app.get('/data/battery', authenticateToken, (req, res) => {
+  // Get current values for all battery metrics
+  const batteryData = {
+    // Total battery metrics
+    total: {
+      soc: parseFloat(cachedData['solar_assistant/total/battery_state_of_charge/state']?.value) || null,
+      power: parseFloat(cachedData['solar_assistant/total/battery_power/state']?.value) || null,
+      temperature: parseFloat(cachedData['solar_assistant/total/battery_temperature/state']?.value) || null,
+      energyIn: parseFloat(cachedData['solar_assistant/total/battery_energy_in/state']?.value) || null,
+      energyOut: parseFloat(cachedData['solar_assistant/total/battery_energy_out/state']?.value) || null,
+      voltage: parseFloat(cachedData['solar_assistant/inverter_1/battery_voltage/state']?.value) || null,
+      current: parseFloat(cachedData['solar_assistant/inverter_1/battery_current/state']?.value) || null
+    },
+    
+    // Individual battery data
+    batteries: [1, 2, 3].map(num => {
+      return {
+        id: num,
+        voltage: parseFloat(cachedData[`solar_assistant/battery_${num}/voltage/state`]?.value) || null,
+        current: parseFloat(cachedData[`solar_assistant/battery_${num}/current/state`]?.value) || null,
+        power: parseFloat(cachedData[`solar_assistant/battery_${num}/power/state`]?.value) || null,
+        temperature: parseFloat(cachedData[`solar_assistant/battery_${num}/temperature/state`]?.value) || null,
+        soc: parseFloat(cachedData[`solar_assistant/battery_${num}/state_of_charge/state`]?.value) || null,
+        soh: parseFloat(cachedData[`solar_assistant/battery_${num}/state_of_health/state`]?.value) || null,
+        capacity: parseFloat(cachedData[`solar_assistant/battery_${num}/capacity/state`]?.value) || null,
+        chargeCapacity: parseFloat(cachedData[`solar_assistant/battery_${num}/charge_capacity/state`]?.value) || null,
+        cellVoltage: {
+          average: parseFloat(cachedData[`solar_assistant/battery_${num}/cell_voltage_-_average/state`]?.value) || null,
+          highest: parseFloat(cachedData[`solar_assistant/battery_${num}/cell_voltage_-_highest/state`]?.value) || null,
+          lowest: parseFloat(cachedData[`solar_assistant/battery_${num}/cell_voltage_-_lowest/state`]?.value) || null
+        }
+      };
+    }),
+    
+    // Historical data for charting
+    history: {
+      voltage: [1, 2, 3].reduce((acc, num) => {
+        acc[`battery_${num}`] = historicalData[`solar_assistant/battery_${num}/voltage/state`] || [];
+        return acc;
+      }, {}),
+      current: [1, 2, 3].reduce((acc, num) => {
+        acc[`battery_${num}`] = historicalData[`solar_assistant/battery_${num}/current/state`] || [];
+        return acc;
+      }, {}),
+      temperature: [1, 2, 3].reduce((acc, num) => {
+        acc[`battery_${num}`] = historicalData[`solar_assistant/battery_${num}/temperature/state`] || [];
+        return acc;
+      }, {}),
+      power: [1, 2, 3].reduce((acc, num) => {
+        acc[`battery_${num}`] = historicalData[`solar_assistant/battery_${num}/power/state`] || [];
+        return acc;
+      }, {}),
+      soc: [1, 2, 3].reduce((acc, num) => {
+        acc[`battery_${num}`] = historicalData[`solar_assistant/battery_${num}/state_of_charge/state`] || [];
+        return acc;
+      }, {}),
+      totalPower: historicalData['solar_assistant/total/battery_power/state'] || [],
+      totalSoc: historicalData['solar_assistant/total/battery_state_of_charge/state'] || [],
+      totalTemp: historicalData['solar_assistant/total/battery_temperature/state'] || []
+    }
+  };
+  
+  res.json(batteryData);
 });
 
 /**
@@ -3535,6 +4292,31 @@ app.get('/', requireAuth, (req, res) => {
     
     
 
+         .battery-btn {
+           position: absolute;
+           top: 20px;
+           right: 270px;
+           background: var(--card-bg);
+           color: #27ae60;
+           border: 2px solid var(--border-color);
+           border-radius: 50%;
+           width: 40px;
+           height: 40px;
+           font-size: 20px;
+           cursor: pointer;
+           box-shadow: var(--shadow-sm);
+           transition: all 0.3s ease;
+           z-index: 1001;
+         }
+    
+         .battery-btn:hover {
+           background: #27ae60;
+           color: white;
+           border-color: #27ae60;
+           transform: scale(1.1);
+           box-shadow: 0 6px 16px rgba(39, 174, 96, 0.3);
+         }
+
          .settings-btn {
            position: absolute;
            top: 20px;
@@ -3586,6 +4368,14 @@ app.get('/', requireAuth, (req, res) => {
          }
          
          @media (max-width: 768px) {
+           .battery-btn {
+             top: 10px;
+             right: 116px;
+             width: 32px;
+             height: 32px;
+             font-size: 16px;
+           }
+           
            .settings-btn {
              top: 10px;
              right: 72px;
@@ -3909,9 +4699,10 @@ app.get('/', requireAuth, (req, res) => {
   <div class="container">
     <div class="header">
       <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Dark Mode">🌙</button>
+      <button class="battery-btn" onclick="window.location.href='/battery'" title="Battery Details">🔋</button>
       <button class="settings-btn" onclick="window.location.href='/settings-page'" title="Settings">⚙️</button>
       <button class="logout-btn" onclick="logout()" title="Logout">🚪</button>
-      <h1>☀️ SolarAssistant Dashboard <span style="font-size: 14px; color: var(--text-muted); font-weight: normal;">v8.15.0</span></h1>
+      <h1>☀️ SolarAssistant Dashboard <span style="font-size: 14px; color: var(--text-muted); font-weight: normal;">v8.16.0</span></h1>
       <div class="time-period-selector">
         <label for="timePeriod">📊 Time Period:</label>
             <select id="timePeriod" onchange="changeTimePeriod(this.value)">
