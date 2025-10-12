@@ -2759,6 +2759,20 @@ app.get('/battery', requireAuth, (req, res) => {
       html += renderOverviewCard('Voltage', (batteryData.total.voltage || 0).toFixed(1) + 'V', 'accent');
       html += renderOverviewCard('Temperature', (batteryData.total.temperature || 0).toFixed(1) + '°F', 'warning');
       html += '</div>';
+
+      // Individual Battery Power Cards
+      html += '<div class="grid">';
+      html += '<h3 style="grid-column: 1 / -1; margin: 20px 0 10px 0; color: var(--text-primary);">Individual Battery Power</h3>';
+      batteryData.batteries.forEach((battery, index) => {
+        const colors = ['success', 'info', 'warning'];
+        const powerValue = battery.power || 0;
+        html += renderOverviewCard(
+          `Battery ${battery.id} Power`, 
+          formatPower(powerValue), 
+          powerValue > 0 ? colors[index] : 'danger'
+        );
+      });
+      html += '</div>';
       
       // Individual Battery Comparison
       html += '<div class="battery-comparison">';
