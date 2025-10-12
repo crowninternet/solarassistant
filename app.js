@@ -4054,13 +4054,13 @@ app.get('/', requireAuth, (req, res) => {
       </div>
       
       <div class="value-card tooltip" style="border-left: 3px solid #16a085;" data-topic="battery-runtime">
-        <div class="help-icon" data-tooltip="Estimated time your battery can power your home at the current load consumption rate. This assumes no solar input and constant power usage.">?</div>
-        <div class="tooltip-popup">Estimated time your battery can power your home at the current load consumption rate. This assumes no solar input and constant power usage.</div>
+        <div class="help-icon" data-tooltip="Estimated time until battery empty based on current power balance (solar + charger - load). Shows 'Charging' when power balance is positive, 'Infinite' when balanced, or time remaining when discharging.">?</div>
+        <div class="tooltip-popup">Estimated time until battery empty based on current power balance (solar + charger - load). Shows 'Charging' when power balance is positive, 'Infinite' when balanced, or time remaining when discharging.</div>
         <h3>⏱️ Battery Runtime</h3>
         <div class="value">
           <span class="value-number" id="batteryRuntime" style="font-size: 20px;">${getBatteryRuntime()}</span>
         </div>
-        <div class="updated">At current load</div>
+        <div class="updated">At current power balance</div>
       </div>
       
       <div class="value-card tooltip" style="border-left: 3px solid #f39c12;" data-topic="peak-production">
