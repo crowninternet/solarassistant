@@ -1121,7 +1121,7 @@ function getDailyEnergyConsumed() {
 /**
  * Calculate estimated battery runtime based on power balance
  * FORMULA: (Battery Capacity * Voltage * SOC) / Net Discharge Rate = Hours
- * USED BY: Dashboard to show "X hours remaining" or "Full in X hours" estimate
+ * USED BY: Dashboard to show "X hours remaining" estimate
  * @returns {string} - Formatted runtime (e.g., "5h 23m") or "N/A"
  */
 function getBatteryRuntime() {
@@ -1138,22 +1138,15 @@ function getBatteryRuntime() {
     const externalChargerPower = (isExternalChargerOn && batteryPower > 0) ? batteryPower : 0;
     const powerBalance = solarPower + externalChargerPower - loadPower;
     
-    // If power balance is positive (charging), calculate time to full
+    // Calculate available energy in battery
+    const availableEnergy = (batteryCapacity * batteryVoltage * soc) / 100;
+    
+    // If power balance is positive (charging), show infinite runtime
     if (powerBalance > 0) {
-      const remainingCapacity = (batteryCapacity * batteryVoltage * (100 - soc)) / 100;
-      const timeToFull = remainingCapacity / powerBalance;
-      
-      if (timeToFull < 1) {
-        return `Full in ${Math.round(timeToFull * 60)} min`;
-      } else if (timeToFull < 24) {
-        return `Full in ${timeToFull.toFixed(1)} hrs`;
-      } else {
-        return `Full in ${(timeToFull / 24).toFixed(1)} days`;
-      }
+      return 'Charging';
     }
     // If power balance is negative (discharging), calculate time to empty
     else if (powerBalance < 0) {
-      const availableEnergy = (batteryCapacity * batteryVoltage * soc) / 100;
       const runtimeHours = availableEnergy / Math.abs(powerBalance);
       
       if (runtimeHours < 1) {
@@ -1164,9 +1157,9 @@ function getBatteryRuntime() {
         return `${(runtimeHours / 24).toFixed(1)} days`;
       }
     }
-    // If power balance is zero (balanced), battery not charging or discharging
+    // If power balance is zero (balanced), theoretically infinite runtime
     else {
-      return 'Balanced';
+      return 'Infinite';
     }
   }
   return 'N/A';
