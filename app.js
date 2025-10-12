@@ -2866,6 +2866,14 @@ app.get('/battery', requireAuth, (req, res) => {
     }
     
     function createCharts() {
+      // Debug: Check if we have historical data
+      console.log('Creating charts...');
+      console.log('Power history battery_1:', batteryData.history.power.battery_1?.length || 0, 'points');
+      console.log('Power history battery_2:', batteryData.history.power.battery_2?.length || 0, 'points');
+      console.log('Power history battery_3:', batteryData.history.power.battery_3?.length || 0, 'points');
+      console.log('Temp history battery_1:', batteryData.history.temperature.battery_1?.length || 0, 'points');
+      console.log('Voltage history battery_1:', batteryData.history.voltage.battery_1?.length || 0, 'points');
+      
       // Power Flow Chart (Bar Chart)
       const powerCtx = document.getElementById('powerChart').getContext('2d');
       charts.power = new Chart(powerCtx, {
@@ -2930,33 +2938,36 @@ app.get('/battery', requireAuth, (req, res) => {
         options: getBarChartOptions('Temperature (°F)')
       });
       
-      // Voltage Chart
+      // Voltage Chart (Bar Chart)
       const voltageCtx = document.getElementById('voltageChart').getContext('2d');
       charts.voltage = new Chart(voltageCtx, {
-        type: 'line',
+        type: 'bar',
         data: {
           datasets: [
             {
               label: 'Battery 1',
               data: filterLastHour(batteryData.history.voltage.battery_1),
+              backgroundColor: 'rgba(39, 174, 96, 0.7)',
               borderColor: '#27ae60',
-              tension: 0.4
+              borderWidth: 1
             },
             {
               label: 'Battery 2',
               data: filterLastHour(batteryData.history.voltage.battery_2),
+              backgroundColor: 'rgba(52, 152, 219, 0.7)',
               borderColor: '#3498db',
-              tension: 0.4
+              borderWidth: 1
             },
             {
               label: 'Battery 3',
               data: filterLastHour(batteryData.history.voltage.battery_3),
+              backgroundColor: 'rgba(243, 156, 18, 0.7)',
               borderColor: '#f39c12',
-              tension: 0.4
+              borderWidth: 1
             }
           ]
         },
-        options: getChartOptions('Voltage (V)')
+        options: getBarChartOptions('Voltage (V)')
       });
       
       // Cell Balance Chart (bar chart showing current cell voltages)
