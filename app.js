@@ -1119,29 +1119,54 @@ function getDailyEnergyConsumed() {
 }
 
 /**
- * Calculate estimated battery runtime
- * FORMULA: (Battery Capacity * Voltage * SOC) / Load Power = Hours
- * USED BY: Dashboard to show "X hours remaining" estimate
+ * Calculate estimated battery runtime based on power balance
+ * FORMULA: (Battery Capacity * Voltage * SOC) / Net Discharge Rate = Hours
+ * USED BY: Dashboard to show "X hours remaining" or "Full in X hours" estimate
  * @returns {string} - Formatted runtime (e.g., "5h 23m") or "N/A"
  */
 function getBatteryRuntime() {
   const soc = parseFloat(cachedData['solar_assistant/total/battery_state_of_charge/state']?.value);
+  const solarPower = parseFloat(cachedData['solar_assistant/inverter_1/pv_power/state']?.value);
   const loadPower = parseFloat(cachedData['solar_assistant/inverter_1/load_power/state']?.value);
+  const batteryPower = parseFloat(cachedData['solar_assistant/total/battery_power/state']?.value);
   const batteryCapacity = 300; // Total capacity in Ah (3 x 100Ah batteries)
   const batteryVoltage = parseFloat(cachedData['solar_assistant/inverter_1/battery_voltage/state']?.value) || 48;
   
-  if (!isNaN(soc) && !isNaN(loadPower) && loadPower > 0) {
-    // Calculate available energy in Wh
-    const availableEnergy = (batteryCapacity * batteryVoltage * soc) / 100;
-    // Calculate runtime in hours
-    const runtimeHours = availableEnergy / loadPower;
+  if (!isNaN(soc) && !isNaN(solarPower) && !isNaN(loadPower)) {
+    // Calculate power balance (solar + external charger - load)
+    const isExternalChargerOn = chargerState && chargerState.isOn;
+    const externalChargerPower = (isExternalChargerOn && batteryPower > 0) ? batteryPower : 0;
+    const powerBalance = solarPower + externalChargerPower - loadPower;
     
-    if (runtimeHours < 1) {
-      return `${Math.round(runtimeHours * 60)} min`;
-    } else if (runtimeHours < 24) {
-      return `${runtimeHours.toFixed(1)} hrs`;
-    } else {
-      return `${(runtimeHours / 24).toFixed(1)} days`;
+    // If power balance is positive (charging), calculate time to full
+    if (powerBalance > 0) {
+      const remainingCapacity = (batteryCapacity * batteryVoltage * (100 - soc)) / 100;
+      const timeToFull = remainingCapacity / powerBalance;
+      
+      if (timeToFull < 1) {
+        return `Full in ${Math.round(timeToFull * 60)} min`;
+      } else if (timeToFull < 24) {
+        return `Full in ${timeToFull.toFixed(1)} hrs`;
+      } else {
+        return `Full in ${(timeToFull / 24).toFixed(1)} days`;
+      }
+    }
+    // If power balance is negative (discharging), calculate time to empty
+    else if (powerBalance < 0) {
+      const availableEnergy = (batteryCapacity * batteryVoltage * soc) / 100;
+      const runtimeHours = availableEnergy / Math.abs(powerBalance);
+      
+      if (runtimeHours < 1) {
+        return `${Math.round(runtimeHours * 60)} min`;
+      } else if (runtimeHours < 24) {
+        return `${runtimeHours.toFixed(1)} hrs`;
+      } else {
+        return `${(runtimeHours / 24).toFixed(1)} days`;
+      }
+    }
+    // If power balance is zero (balanced), battery not charging or discharging
+    else {
+      return 'Balanced';
     }
   }
   return 'N/A';
@@ -3893,7 +3918,7 @@ app.get('/', requireAuth, (req, res) => {
       <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Dark Mode">🌙</button>
       <button class="settings-btn" onclick="window.location.href='/settings-page'" title="Settings">⚙️</button>
       <button class="logout-btn" onclick="logout()" title="Logout">🚪</button>
-      <h1>☀️ SolarAssistant Dashboard <span style="font-size: 14px; color: var(--text-muted); font-weight: normal;">v8.14.0</span></h1>
+      <h1>☀️ SolarAssistant Dashboard <span style="font-size: 14px; color: var(--text-muted); font-weight: normal;">v8.15.0</span></h1>
       <div class="time-period-selector">
         <label for="timePeriod">📊 Time Period:</label>
             <select id="timePeriod" onchange="changeTimePeriod(this.value)">
