@@ -2886,10 +2886,10 @@ app.get('/battery', requireAuth, (req, res) => {
         console.log('Sample filtered data:', JSON.stringify(filteredPower1[0], null, 2));
       }
       
-      // Power Flow Chart (Bar Chart)
+      // Power Flow Chart (Line Chart)
       const powerCtx = document.getElementById('powerChart').getContext('2d');
       charts.power = new Chart(powerCtx, {
-        type: 'bar',
+        type: 'line',
         data: {
           datasets: [
             {
@@ -2924,13 +2924,13 @@ app.get('/battery', requireAuth, (req, res) => {
             }
           ]
         },
-        options: getBarChartOptions('Power (W)')
+        options: getChartOptions('Power (W)')
       });
       
-      // Temperature Chart (Bar Chart)
+      // Temperature Chart (Line Chart)
       const tempCtx = document.getElementById('tempChart').getContext('2d');
       charts.temp = new Chart(tempCtx, {
-        type: 'bar',
+        type: 'line',
         data: {
           datasets: [
             {
@@ -2965,13 +2965,13 @@ app.get('/battery', requireAuth, (req, res) => {
             }
           ]
         },
-        options: getBarChartOptions('Temperature (°F)')
+        options: getChartOptions('Temperature (°F)')
       });
       
-      // Voltage Chart (Bar Chart)
+      // Voltage Chart (Line Chart)
       const voltageCtx = document.getElementById('voltageChart').getContext('2d');
       charts.voltage = new Chart(voltageCtx, {
-        type: 'bar',
+        type: 'line',
         data: {
           datasets: [
             {
@@ -3006,7 +3006,7 @@ app.get('/battery', requireAuth, (req, res) => {
             }
           ]
         },
-        options: getBarChartOptions('Voltage (V)')
+        options: getChartOptions('Voltage (V)')
       });
       
       // Cell Balance Chart (bar chart showing current cell voltages)
