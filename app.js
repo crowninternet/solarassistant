@@ -2817,12 +2817,12 @@ app.get('/battery', requireAuth, (req, res) => {
         accent: '#667eea'
       };
       
-      return \`
+      return `
         <div class="card">
-          <h3 style="color: \${colors[color] || colors.accent}">\${label}</h3>
-          <div class="stat-value">\${value}</div>
+          <h3 style="color: ${colors[color] || colors.accent}">${label}</h3>
+          <div class="stat-value">${value}</div>
         </div>
-      \`;
+      `;
     }
     
     function renderBatteryCard(battery) {
