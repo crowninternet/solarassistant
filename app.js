@@ -1141,9 +1141,9 @@ function getBatteryRuntime() {
     // Calculate available energy in battery
     const availableEnergy = (batteryCapacity * batteryVoltage * soc) / 100;
     
-    // If power balance is positive (charging), show infinite runtime
+    // If power balance is positive (charging), show indefinite runtime
     if (powerBalance > 0) {
-      return 'Charging';
+      return 'Indefinite';
     }
     // If power balance is negative (discharging), calculate time to empty
     else if (powerBalance < 0) {
@@ -4054,8 +4054,8 @@ app.get('/', requireAuth, (req, res) => {
       </div>
       
       <div class="value-card tooltip" style="border-left: 3px solid #16a085;" data-topic="battery-runtime">
-        <div class="help-icon" data-tooltip="Estimated time until battery empty based on current power balance (solar + charger - load). Shows 'Charging' when power balance is positive, 'Infinite' when balanced, or time remaining when discharging.">?</div>
-        <div class="tooltip-popup">Estimated time until battery empty based on current power balance (solar + charger - load). Shows 'Charging' when power balance is positive, 'Infinite' when balanced, or time remaining when discharging.</div>
+        <div class="help-icon" data-tooltip="Estimated time until battery empty based on current power balance (solar + charger - load). Shows 'Indefinite' when power balance is positive, 'Infinite' when balanced, or time remaining when discharging.">?</div>
+        <div class="tooltip-popup">Estimated time until battery empty based on current power balance (solar + charger - load). Shows 'Indefinite' when power balance is positive, 'Infinite' when balanced, or time remaining when discharging.</div>
         <h3>⏱️ Battery Runtime</h3>
         <div class="value">
           <span class="value-number" id="batteryRuntime" style="font-size: 20px;">${getBatteryRuntime()}</span>
