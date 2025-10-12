@@ -1207,6 +1207,28 @@ function getPowerBalance() {
 }
 
 /**
+ * Get percentage of total solar power for a specific array
+ * USED BY: Solar array chart on dashboard
+ * @param {string} arrayType - 'array1' or 'array2'
+ * @returns {number} - Percentage (0-100)
+ */
+function getArrayPercentage(arrayType) {
+  const array1Power = parseFloat(cachedData['solar_assistant/inverter_1/pv_power_1/state']?.value) || 0;
+  const array2Power = parseFloat(cachedData['solar_assistant/inverter_1/pv_power_2/state']?.value) || 0;
+  const totalPower = array1Power + array2Power;
+  
+  if (totalPower === 0) return 0;
+  
+  if (arrayType === 'array1') {
+    return Math.round((array1Power / totalPower) * 100);
+  } else if (arrayType === 'array2') {
+    return Math.round((array2Power / totalPower) * 100);
+  }
+  
+  return 0;
+}
+
+/**
  * Get peak solar production power and time
  * SEARCHES: historicalData for pv_power/state topic
  * USED BY: Dashboard "Peak Production" card
@@ -3925,7 +3947,7 @@ app.get('/', requireAuth, (req, res) => {
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>SolarAssistant Dashboard</title>
-  <!-- CSS Version: 8.15.0 - Battery Runtime Power Balance Update -->
+  <!-- CSS Version: 8.17.0 - Solar Array Chart Addition -->
   <script>
     // Aggressive cache busting - Add timestamp to URL if not present
     if (!window.location.search.includes('v=')) {
@@ -4270,6 +4292,38 @@ app.get('/', requireAuth, (req, res) => {
     
     [data-theme="dark"] .value-card .updated {
       color: #ffffff;
+    }
+    
+    /* Solar Array Chart Styles */
+    .solar-array-chart {
+      margin: 8px 0;
+      height: 12px;
+    }
+    
+    .chart-bar {
+      width: 100%;
+      height: 12px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+      overflow: hidden;
+      display: flex;
+    }
+    
+    .bar-segment {
+      height: 100%;
+      transition: width 0.3s ease;
+    }
+    
+    .bar-segment.array1 {
+      background-color: #20b2aa;
+    }
+    
+    .bar-segment.array2 {
+      background-color: #8e44ad;
+    }
+    
+    [data-theme="dark"] .chart-bar {
+      background: rgba(0, 0, 0, 0.3);
     }
     
     /* Status Chart Styles */
@@ -4827,7 +4881,7 @@ app.get('/', requireAuth, (req, res) => {
       <button class="battery-btn" onclick="window.location.href='/battery'" title="Battery Details">🔋</button>
       <button class="settings-btn" onclick="window.location.href='/settings-page'" title="Settings">⚙️</button>
       <button class="logout-btn" onclick="logout()" title="Logout">🚪</button>
-      <h1>☀️ SolarAssistant Dashboard <span style="font-size: 14px; color: var(--text-muted); font-weight: normal;">v8.16.0</span></h1>
+      <h1>☀️ SolarAssistant Dashboard <span style="font-size: 14px; color: var(--text-muted); font-weight: normal;">v8.17.0</span></h1>
       <div class="time-period-selector">
         <label for="timePeriod">📊 Time Period:</label>
             <select id="timePeriod" onchange="changeTimePeriod(this.value)">
@@ -4879,6 +4933,12 @@ app.get('/', requireAuth, (req, res) => {
           <div class="value">
             <span class="value-number">${getCurrentValue('solar_assistant/inverter_1/pv_power/state')}</span>
             <span class="unit">W</span>
+          </div>
+          <div class="solar-array-chart">
+            <div class="chart-bar" id="solarArrayChart">
+              <div class="bar-segment array1" style="width: ${getArrayPercentage('array1')}%; background-color: #20b2aa;"></div>
+              <div class="bar-segment array2" style="width: ${getArrayPercentage('array2')}%; background-color: #8e44ad;"></div>
+            </div>
           </div>
           <div class="updated">Updated: ${getUpdateTime('solar_assistant/inverter_1/pv_power/state')}</div>
         </div>
@@ -5619,6 +5679,9 @@ app.get('/', requireAuth, (req, res) => {
           
           updatePowerBalance(data);
           
+          // Update solar array chart
+          updateSolarArrayChart(data);
+          
           // Update weather card
           if (currentData.weather) {
             updateWeatherCard(currentData.weather);
@@ -5824,6 +5887,37 @@ app.get('/', requireAuth, (req, res) => {
               card.style.borderLeft = '3px solid #3498db';
               statusElement.textContent = '⚖️ Balanced';
               statusElement.style.color = '#3498db';
+            }
+          }
+        }
+      }
+    }
+    
+    // Helper function to update solar array chart
+    function updateSolarArrayChart(data) {
+      const array1Topic = 'solar_assistant/inverter_1/pv_power_1/state';
+      const array2Topic = 'solar_assistant/inverter_1/pv_power_2/state';
+      
+      if (data[array1Topic] && data[array2Topic]) {
+        const array1Power = parseFloat(data[array1Topic].value) || 0;
+        const array2Power = parseFloat(data[array2Topic].value) || 0;
+        const totalPower = array1Power + array2Power;
+        
+        const chart = document.getElementById('solarArrayChart');
+        if (chart) {
+          const array1Segment = chart.querySelector('.array1');
+          const array2Segment = chart.querySelector('.array2');
+          
+          if (array1Segment && array2Segment) {
+            if (totalPower === 0) {
+              array1Segment.style.width = '0%';
+              array2Segment.style.width = '0%';
+            } else {
+              const array1Percentage = Math.round((array1Power / totalPower) * 100);
+              const array2Percentage = Math.round((array2Power / totalPower) * 100);
+              
+              array1Segment.style.width = array1Percentage + '%';
+              array2Segment.style.width = array2Percentage + '%';
             }
           }
         }
