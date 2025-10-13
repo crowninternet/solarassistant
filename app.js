@@ -2746,35 +2746,31 @@ app.get('/battery', requireAuth, (req, res) => {
       margin-top: 3px;
     }
     
-    .battery-selector {
-      display: flex;
-      gap: 20px;
-      margin-bottom: 15px;
-      padding: 10px;
-      background: rgba(255, 255, 255, 0.02);
-      border-radius: 8px;
-      border: 1px solid var(--border-color);
-    }
-    
-    .battery-selector label {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-      color: var(--text-secondary);
+    .chart-selector-label {
       font-size: 14px;
-      transition: color 0.2s ease;
+      color: var(--text-secondary);
+      font-weight: 500;
     }
     
-    .battery-selector label:hover {
+    .chart-selector {
+      padding: 6px 12px;
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      background: var(--card-bg);
+      font-size: 14px;
       color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.3s ease;
     }
     
-    .battery-selector input[type="checkbox"] {
-      cursor: pointer;
-      width: 18px;
-      height: 18px;
-      accent-color: var(--accent-color);
+    .chart-selector:hover {
+      border-color: var(--accent-color);
+    }
+    
+    .chart-selector:focus {
+      outline: none;
+      border-color: var(--accent-color);
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
     }
     
     @media (max-width: 768px) {
@@ -2790,9 +2786,10 @@ app.get('/battery', requireAuth, (req, res) => {
         grid-template-columns: 1fr;
       }
       
-      .battery-selector {
+      .chart-container > div:first-child {
         flex-direction: column;
         gap: 10px;
+        align-items: flex-start !important;
       }
     }
   </style>
@@ -2871,31 +2868,49 @@ app.get('/battery', requireAuth, (req, res) => {
       
       // Charts
       html += '<div class="chart-container">';
-      html += '<h3>Battery Power Flow (Past Hour)</h3>';
-      html += '<div class="battery-selector">';
-      html += '<label><input type="checkbox" id="power-bat1" checked onchange="toggleBattery(' + "'power'" + ', 0, this.checked)"> Battery 1</label>';
-      html += '<label><input type="checkbox" id="power-bat2" checked onchange="toggleBattery(' + "'power'" + ', 1, this.checked)"> Battery 2</label>';
-      html += '<label><input type="checkbox" id="power-bat3" checked onchange="toggleBattery(' + "'power'" + ', 2, this.checked)"> Battery 3</label>';
+      html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">';
+      html += '<h3 style="margin: 0;">Battery Power Flow (Past Hour)</h3>';
+      html += '<div style="display: flex; align-items: center; gap: 10px;">';
+      html += '<label for="powerSelector" class="chart-selector-label">View:</label>';
+      html += '<select id="powerSelector" onchange="changeBatteryView(' + "'power'" + ', this.value)" class="chart-selector">';
+      html += '<option value="all">All Batteries</option>';
+      html += '<option value="battery1">Battery 1 Only</option>';
+      html += '<option value="battery2">Battery 2 Only</option>';
+      html += '<option value="battery3">Battery 3 Only</option>';
+      html += '</select>';
+      html += '</div>';
       html += '</div>';
       html += '<canvas id="powerChart"></canvas>';
       html += '</div>';
       
       html += '<div class="chart-container">';
-      html += '<h3>Battery Temperatures (Past Hour)</h3>';
-      html += '<div class="battery-selector">';
-      html += '<label><input type="checkbox" id="temp-bat1" checked onchange="toggleBattery(' + "'temp'" + ', 0, this.checked)"> Battery 1</label>';
-      html += '<label><input type="checkbox" id="temp-bat2" checked onchange="toggleBattery(' + "'temp'" + ', 1, this.checked)"> Battery 2</label>';
-      html += '<label><input type="checkbox" id="temp-bat3" checked onchange="toggleBattery(' + "'temp'" + ', 2, this.checked)"> Battery 3</label>';
+      html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">';
+      html += '<h3 style="margin: 0;">Battery Temperatures (Past Hour)</h3>';
+      html += '<div style="display: flex; align-items: center; gap: 10px;">';
+      html += '<label for="tempSelector" class="chart-selector-label">View:</label>';
+      html += '<select id="tempSelector" onchange="changeBatteryView(' + "'temp'" + ', this.value)" class="chart-selector">';
+      html += '<option value="all">All Batteries</option>';
+      html += '<option value="battery1">Battery 1 Only</option>';
+      html += '<option value="battery2">Battery 2 Only</option>';
+      html += '<option value="battery3">Battery 3 Only</option>';
+      html += '</select>';
+      html += '</div>';
       html += '</div>';
       html += '<canvas id="tempChart"></canvas>';
       html += '</div>';
       
       html += '<div class="chart-container">';
-      html += '<h3>Individual Battery Voltages (Past Hour)</h3>';
-      html += '<div class="battery-selector">';
-      html += '<label><input type="checkbox" id="voltage-bat1" checked onchange="toggleBattery(' + "'voltage'" + ', 0, this.checked)"> Battery 1</label>';
-      html += '<label><input type="checkbox" id="voltage-bat2" checked onchange="toggleBattery(' + "'voltage'" + ', 1, this.checked)"> Battery 2</label>';
-      html += '<label><input type="checkbox" id="voltage-bat3" checked onchange="toggleBattery(' + "'voltage'" + ', 2, this.checked)"> Battery 3</label>';
+      html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">';
+      html += '<h3 style="margin: 0;">Individual Battery Voltages (Past Hour)</h3>';
+      html += '<div style="display: flex; align-items: center; gap: 10px;">';
+      html += '<label for="voltageSelector" class="chart-selector-label">View:</label>';
+      html += '<select id="voltageSelector" onchange="changeBatteryView(' + "'voltage'" + ', this.value)" class="chart-selector">';
+      html += '<option value="all">All Batteries</option>';
+      html += '<option value="battery1">Battery 1 Only</option>';
+      html += '<option value="battery2">Battery 2 Only</option>';
+      html += '<option value="battery3">Battery 3 Only</option>';
+      html += '</select>';
+      html += '</div>';
       html += '</div>';
       html += '<canvas id="voltageChart"></canvas>';
       html += '</div>';
@@ -3302,12 +3317,27 @@ app.get('/battery', requireAuth, (req, res) => {
       return data.filter(point => new Date(point.timestamp).getTime() > oneHourAgo);
     }
     
-    function toggleBattery(chartType, datasetIndex, visible) {
+    function changeBatteryView(chartType, view) {
       const chart = charts[chartType];
       if (!chart) return;
       
-      // Toggle visibility of the dataset
-      chart.data.datasets[datasetIndex].hidden = !visible;
+      // Hide/show datasets based on selection
+      chart.data.datasets.forEach((dataset, index) => {
+        if (view === 'all') {
+          // Show all datasets
+          dataset.hidden = false;
+        } else if (view === 'battery1') {
+          // Show only Battery 1 (index 0)
+          dataset.hidden = (index !== 0);
+        } else if (view === 'battery2') {
+          // Show only Battery 2 (index 1)
+          dataset.hidden = (index !== 1);
+        } else if (view === 'battery3') {
+          // Show only Battery 3 (index 2)
+          dataset.hidden = (index !== 2);
+        }
+      });
+      
       chart.update();
     }
     
