@@ -7,7 +7,8 @@ const path = require('path');
 const DATA_FILES = [
   'alert_settings.json',
   'daily_stats.json',
-  'data_history.json'
+  'data_history.json',
+  'package.json'
 ];
 
 // Sensitive files to backup (contains API keys and SSL certificates)

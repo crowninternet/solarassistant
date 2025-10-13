@@ -88,7 +88,7 @@ function performRestore(backup) {
     const beforeRestoreDir = path.join(BACKUP_DIR, `before_restore_${Date.now()}`);
     fs.mkdirSync(beforeRestoreDir, { recursive: true });
     
-    const DATA_FILES = ['alert_settings.json', 'daily_stats.json', 'data_history.json'];
+    const DATA_FILES = ['alert_settings.json', 'daily_stats.json', 'data_history.json', 'package.json'];
     const SENSITIVE_FILES = ['.env'];
     const SSL_FILES = ['ssl/server.crt', 'ssl/server.conf'];
     let restoredCount = 0;
