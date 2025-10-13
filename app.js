@@ -2746,6 +2746,37 @@ app.get('/battery', requireAuth, (req, res) => {
       margin-top: 3px;
     }
     
+    .battery-selector {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 15px;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+    }
+    
+    .battery-selector label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      color: var(--text-secondary);
+      font-size: 14px;
+      transition: color 0.2s ease;
+    }
+    
+    .battery-selector label:hover {
+      color: var(--text-primary);
+    }
+    
+    .battery-selector input[type="checkbox"] {
+      cursor: pointer;
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent-color);
+    }
+    
     @media (max-width: 768px) {
       .battery-comparison {
         grid-template-columns: 1fr;
@@ -2757,6 +2788,11 @@ app.get('/battery', requireAuth, (req, res) => {
       
       .grid {
         grid-template-columns: 1fr;
+      }
+      
+      .battery-selector {
+        flex-direction: column;
+        gap: 10px;
       }
     }
   </style>
@@ -2836,16 +2872,31 @@ app.get('/battery', requireAuth, (req, res) => {
       // Charts
       html += '<div class="chart-container">';
       html += '<h3>Battery Power Flow (Past Hour)</h3>';
+      html += '<div class="battery-selector">';
+      html += '<label><input type="checkbox" id="power-bat1" checked onchange="toggleBattery(' + "'power'" + ', 0, this.checked)"> Battery 1</label>';
+      html += '<label><input type="checkbox" id="power-bat2" checked onchange="toggleBattery(' + "'power'" + ', 1, this.checked)"> Battery 2</label>';
+      html += '<label><input type="checkbox" id="power-bat3" checked onchange="toggleBattery(' + "'power'" + ', 2, this.checked)"> Battery 3</label>';
+      html += '</div>';
       html += '<canvas id="powerChart"></canvas>';
       html += '</div>';
       
       html += '<div class="chart-container">';
       html += '<h3>Battery Temperatures (Past Hour)</h3>';
+      html += '<div class="battery-selector">';
+      html += '<label><input type="checkbox" id="temp-bat1" checked onchange="toggleBattery(' + "'temp'" + ', 0, this.checked)"> Battery 1</label>';
+      html += '<label><input type="checkbox" id="temp-bat2" checked onchange="toggleBattery(' + "'temp'" + ', 1, this.checked)"> Battery 2</label>';
+      html += '<label><input type="checkbox" id="temp-bat3" checked onchange="toggleBattery(' + "'temp'" + ', 2, this.checked)"> Battery 3</label>';
+      html += '</div>';
       html += '<canvas id="tempChart"></canvas>';
       html += '</div>';
       
       html += '<div class="chart-container">';
       html += '<h3>Individual Battery Voltages (Past Hour)</h3>';
+      html += '<div class="battery-selector">';
+      html += '<label><input type="checkbox" id="voltage-bat1" checked onchange="toggleBattery(' + "'voltage'" + ', 0, this.checked)"> Battery 1</label>';
+      html += '<label><input type="checkbox" id="voltage-bat2" checked onchange="toggleBattery(' + "'voltage'" + ', 1, this.checked)"> Battery 2</label>';
+      html += '<label><input type="checkbox" id="voltage-bat3" checked onchange="toggleBattery(' + "'voltage'" + ', 2, this.checked)"> Battery 3</label>';
+      html += '</div>';
       html += '<canvas id="voltageChart"></canvas>';
       html += '</div>';
       
@@ -3249,6 +3300,15 @@ app.get('/battery', requireAuth, (req, res) => {
       if (!data || data.length === 0) return [];
       const oneHourAgo = Date.now() - (60 * 60 * 1000);
       return data.filter(point => new Date(point.timestamp).getTime() > oneHourAgo);
+    }
+    
+    function toggleBattery(chartType, datasetIndex, visible) {
+      const chart = charts[chartType];
+      if (!chart) return;
+      
+      // Toggle visibility of the dataset
+      chart.data.datasets[datasetIndex].hidden = !visible;
+      chart.update();
     }
     
     function updateBatteryValues() {
