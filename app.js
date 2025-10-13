@@ -2719,32 +2719,6 @@ app.get('/battery', requireAuth, (req, res) => {
       text-align: center;
     }
     
-    .cell-balance-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-      margin-top: 10px;
-    }
-    
-    .cell-stat {
-      background: rgba(255, 255, 255, 0.02);
-      padding: 10px;
-      border-radius: 6px;
-      text-align: center;
-      border: 1px solid var(--border-color);
-    }
-    
-    .cell-stat-value {
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--text-primary);
-    }
-    
-    .cell-stat-label {
-      font-size: 10px;
-      color: var(--text-muted);
-      margin-top: 3px;
-    }
     
     .chart-selector-label {
       font-size: 14px;
@@ -2994,19 +2968,17 @@ app.get('/battery', requireAuth, (req, res) => {
             '<div class="stat-item-value">' + (battery.soc || 0) + '%</div>' +
             '<div class="stat-item-label">SOC</div>' +
           '</div>' +
-        '</div>' +
-        '<div class="cell-balance-grid">' +
-          '<div class="cell-stat">' +
-            '<div class="cell-stat-value">' + (battery.cellVoltage.average || 0).toFixed(3) + 'V</div>' +
-            '<div class="cell-stat-label">Avg Cell</div>' +
+          '<div class="stat-item">' +
+            '<div class="stat-item-value">' + (battery.cellVoltage.average || 0).toFixed(3) + 'V</div>' +
+            '<div class="stat-item-label">Avg Cell</div>' +
           '</div>' +
-          '<div class="cell-stat">' +
-            '<div class="cell-stat-value">' + (battery.cellVoltage.highest || 0).toFixed(3) + 'V</div>' +
-            '<div class="cell-stat-label">Max Cell</div>' +
+          '<div class="stat-item">' +
+            '<div class="stat-item-value">' + (battery.cellVoltage.highest || 0).toFixed(3) + 'V</div>' +
+            '<div class="stat-item-label">Max Cell</div>' +
           '</div>' +
-          '<div class="cell-stat">' +
-            '<div class="cell-stat-value">' + cellDiff + 'V</div>' +
-            '<div class="cell-stat-label">Difference</div>' +
+          '<div class="stat-item">' +
+            '<div class="stat-item-value">' + cellDiff + 'V</div>' +
+            '<div class="stat-item-label">Difference</div>' +
           '</div>' +
         '</div>' +
         '</div>';
