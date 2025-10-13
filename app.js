@@ -2833,6 +2833,7 @@ app.get('/battery', requireAuth, (req, res) => {
       html += '<div class="card"><h3 style="color: #3498db">Total Power</h3><div class="stat-value" id="total-power">Loading...</div></div>';
       html += '<div class="card"><h3 style="color: #667eea">Voltage</h3><div class="stat-value" id="total-voltage">Loading...</div></div>';
       html += '<div class="card"><h3 style="color: #f39c12">Temperature</h3><div class="stat-value" id="total-temperature">Loading...</div></div>';
+      html += '<div class="card"><h3 style="color: #9b59b6">Total Current</h3><div class="stat-value" id="total-current">Loading...</div></div>';
       html += '</div>';
       
       // Individual Battery Comparison
@@ -2911,6 +2912,7 @@ app.get('/battery', requireAuth, (req, res) => {
       document.getElementById('total-power').textContent = formatPower(batteryData.total.power);
       document.getElementById('total-voltage').textContent = (batteryData.total.voltage || 0).toFixed(1) + 'V';
       document.getElementById('total-temperature').textContent = (batteryData.total.temperature || 0).toFixed(1) + '°F';
+      document.getElementById('total-current').textContent = (batteryData.total.current || 0).toFixed(1) + 'A';
     }
     
     function updateBatteryCards() {

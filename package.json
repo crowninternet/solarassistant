@@ -1,6 +1,6 @@
 {
   "name": "solar-assistant-monitor",
-  "version": "8.23.0",
+  "version": "8.24.0",
   "description": "Comprehensive SolarAssistant dashboard with real-time monitoring, historical charts, dark mode, weather integration, email alerts, and automated battery charger control via IFTTT",
   "main": "app.js",
   "scripts": {
