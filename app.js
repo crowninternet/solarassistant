@@ -2594,6 +2594,22 @@ app.get('/battery', requireAuth, (req, res) => {
       margin-bottom: 20px;
     }
     
+    #overview-cards {
+      grid-template-columns: repeat(5, 1fr);
+    }
+    
+    @media (max-width: 1200px) {
+      #overview-cards {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+    
+    @media (max-width: 768px) {
+      #overview-cards {
+        grid-template-columns: 1fr;
+      }
+    }
+    
     .card {
       background: var(--card-bg);
       border-radius: 12px;
