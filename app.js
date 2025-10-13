@@ -2983,6 +2983,10 @@ app.get('/battery', requireAuth, (req, res) => {
             '<div class="stat-item-label">Current</div>' +
           '</div>' +
           '<div class="stat-item">' +
+            '<div class="stat-item-value">' + formatPower(battery.power) + '</div>' +
+            '<div class="stat-item-label">Power</div>' +
+          '</div>' +
+          '<div class="stat-item">' +
             '<div class="stat-item-value">' + (battery.temperature || 0).toFixed(1) + '°F</div>' +
             '<div class="stat-item-label">Temperature</div>' +
           '</div>' +
