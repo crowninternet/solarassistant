@@ -3238,6 +3238,14 @@ app.get('/battery', requireAuth, (req, res) => {
             display: true,
             position: 'top',
             labels: { color: '#a0a0a0' }
+          },
+          tooltip: {
+            mode: 'index',
+            intersect: false,
+            filter: function(tooltipItem) {
+              // Only show tooltips for visible datasets
+              return !tooltipItem.dataset.hidden;
+            }
           }
         },
         scales: {
