@@ -3745,7 +3745,7 @@ app.get('/data/daily-stats', authenticateToken, (req, res) => {
     energyProduced: getDailyEnergyProduced(),
     energyConsumed: getDailyEnergyConsumed(),
     batteryRuntime: getBatteryRuntime(),
-    peakPerformance: getPeakPerformance(), // All-time peak
+    peakPerformance: getPeakPerformance(1), // Peak for past hour (default time period)
     peakPower: dailyStats.peakPower,
     date: dailyStats.date,
     trackingStartTime: earliestTime || 'Just started'
@@ -5257,13 +5257,13 @@ app.get('/', requireAuth, (req, res) => {
       </div>
       
       <div class="value-card tooltip" style="border-left: 3px solid #f39c12;" data-topic="peak-production">
-        <div class="help-icon" data-tooltip="Highest solar power output recorded since system installation. Shows your system's maximum performance capability under optimal conditions.">?</div>
-        <div class="tooltip-popup">Highest solar power output recorded since system installation. Shows your system's maximum performance capability under optimal conditions.</div>
+        <div class="help-icon" data-tooltip="Highest solar power output recorded for the selected time period. Updates dynamically when you change the time period filter above.">?</div>
+        <div class="tooltip-popup">Highest solar power output recorded for the selected time period. Updates dynamically when you change the time period filter above.</div>
         <h3>🌟 Peak Performance</h3>
         <div class="value">
-          <span class="value-number" id="peakProduction" style="font-size: 14px;">${getPeakPerformance()}</span>
+          <span class="value-number" id="peakProduction" style="font-size: 14px;">${getPeakPerformance(1)}</span>
         </div>
-        <div class="updated" id="peakProductionLabel">All-time record</div>
+        <div class="updated" id="peakProductionLabel">Past hour</div>
       </div>
       
       <div class="value-card tooltip" style="border-left: 3px solid #9b59b6;" data-topic="solar_assistant/inverter_1/battery_voltage/state">
@@ -6052,7 +6052,7 @@ app.get('/', requireAuth, (req, res) => {
           if (energyProducedEl) energyProducedEl.textContent = stats.energyProduced;
           if (energyConsumedEl) energyConsumedEl.textContent = stats.energyConsumed;
           if (batteryRuntimeEl) batteryRuntimeEl.textContent = stats.batteryRuntime;
-          if (peakProductionEl) peakProductionEl.textContent = stats.peakPerformance;
+          // Note: peakPerformance is updated only when time period changes, not during 3-second refresh
           
           // Update labels with tracking start time
           const label = stats.trackingStartTime === 'Just started' ? 'Initializing...' : 'Since ' + stats.trackingStartTime;
