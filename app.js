@@ -5085,7 +5085,7 @@ app.get('/', requireAuth, (req, res) => {
       <button class="battery-btn" onclick="window.location.href='/battery'" title="Battery Details">🔋</button>
       <button class="settings-btn" onclick="window.location.href='/settings-page'" title="Settings">⚙️</button>
       <button class="logout-btn" onclick="logout()" title="Logout">🚪</button>
-      <h1>☀️ SolarAssistant Dashboard <span style="font-size: 14px; color: var(--text-muted); font-weight: normal;">v8.20.1</span></h1>
+      <h1>☀️ SolarAssistant Dashboard <span style="font-size: 14px; color: var(--text-muted); font-weight: normal;">v8.20.0</span></h1>
       <div class="time-period-selector">
         <label for="timePeriod">📊 Time Period:</label>
             <select id="timePeriod" onchange="changeTimePeriod(this.value)">
@@ -5644,19 +5644,6 @@ app.get('/', requireAuth, (req, res) => {
       .then(historyData => {
         const data = historyData.data;
         
-        // Filter data to last hour (default time period)
-        const now = new Date();
-        const oneHourAgo = new Date(now.getTime() - (60 * 60 * 1000));
-        
-        // Helper function to filter data to last hour
-        function filterToLastHour(topicData) {
-          if (!topicData) return [];
-          return topicData.filter(item => {
-            const itemTime = new Date(item.timestamp);
-            return itemTime >= oneHourAgo && itemTime <= now;
-          });
-        }
-        
         // Data reduction function to limit points for better performance
         function reduceDataPoints(data, maxPoints = 100) {
           if (data.length <= maxPoints) return data;
@@ -5710,20 +5697,18 @@ app.get('/', requireAuth, (req, res) => {
               }
             }
           },
-              scales: {
-                x: {
-                  type: 'time',
-                  time: {
-                    unit: 'minute',
-                    displayFormats: {
-                      minute: 'h:mm a',
-                      hour: 'h:mm a',
-                      day: 'MMM d'
-                    },
-                    tooltipFormat: 'MMM d, yyyy h:mm a'
-                  },
-                  min: oneHourAgo,
-                  max: now,
+          scales: {
+            x: {
+              type: 'time',
+              time: {
+                unit: 'minute',
+                displayFormats: {
+                  minute: 'h:mm a',
+                  hour: 'MMM d, h a',
+                  day: 'MMM d'
+                },
+                tooltipFormat: 'MMM d, yyyy h:mm a'
+              },
               title: {
                 display: true,
                 text: 'Time',
@@ -5764,8 +5749,7 @@ app.get('/', requireAuth, (req, res) => {
         const datasets = [];
         
         if (data['solar_assistant/inverter_1/pv_power/state']) {
-          const filteredPvData = filterToLastHour(data['solar_assistant/inverter_1/pv_power/state']);
-          const pvData = filteredPvData.map(item => ({
+          const pvData = data['solar_assistant/inverter_1/pv_power/state'].map(item => ({
             x: new Date(item.timestamp),
             y: item.value
           }));
@@ -5787,8 +5771,7 @@ app.get('/', requireAuth, (req, res) => {
         }
         
         if (data['solar_assistant/inverter_1/pv_power_1/state']) {
-          const filteredPv1Data = filterToLastHour(data['solar_assistant/inverter_1/pv_power_1/state']);
-          const pv1Data = filteredPv1Data.map(item => ({
+          const pv1Data = data['solar_assistant/inverter_1/pv_power_1/state'].map(item => ({
             x: new Date(item.timestamp),
             y: item.value
           }));
@@ -5810,8 +5793,7 @@ app.get('/', requireAuth, (req, res) => {
         }
         
         if (data['solar_assistant/inverter_1/pv_power_2/state']) {
-          const filteredPv2Data = filterToLastHour(data['solar_assistant/inverter_1/pv_power_2/state']);
-          const pv2Data = filteredPv2Data.map(item => ({
+          const pv2Data = data['solar_assistant/inverter_1/pv_power_2/state'].map(item => ({
             x: new Date(item.timestamp),
             y: item.value
           }));
@@ -5873,8 +5855,7 @@ app.get('/', requireAuth, (req, res) => {
         
         // Battery SOC Chart
         if (data['solar_assistant/total/battery_state_of_charge/state']) {
-          const filteredSocData = filterToLastHour(data['solar_assistant/total/battery_state_of_charge/state']);
-          const socData = filteredSocData.map(item => ({
+          const socData = data['solar_assistant/total/battery_state_of_charge/state'].map(item => ({
             x: new Date(item.timestamp),
             y: item.value
           }));
@@ -5916,8 +5897,7 @@ app.get('/', requireAuth, (req, res) => {
         
         // Load Power Chart
         if (data['solar_assistant/inverter_1/load_power/state']) {
-          const filteredLoadData = filterToLastHour(data['solar_assistant/inverter_1/load_power/state']);
-          const loadData = filteredLoadData.map(item => ({
+          const loadData = data['solar_assistant/inverter_1/load_power/state'].map(item => ({
             x: new Date(item.timestamp),
             y: item.value
           }));
