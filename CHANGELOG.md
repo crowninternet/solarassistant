@@ -4,25 +4,6 @@ All notable changes to the SolarAssistant Dashboard will be documented in this f
 
 ---
 
-## [8.20.1] - 2025-10-13
-
-### 🐛 Bug Fixes
-- **Fixed Chart Initialization Time Period Bug**:
-  - Charts now display correct 1-hour data on initial page load
-  - Fixed issue where charts showed 7 days of data despite "Past 1 Hour" being selected
-  - Added `filterToLastHour()` function to filter data to default period
-  - Updated all chart data processing (PV Power, Battery SOC, Load Power) to use filtered data
-  - Set chart x-axis min/max to match 1-hour time range
-  - Eliminates need to toggle time periods to see correct data
-
-### 🔧 Technical Improvements
-- **Chart Data Processing**:
-  - All charts now filter historical data to selected time period before processing
-  - Improved initial load performance by reducing data points
-  - Better consistency between time period selector and chart display
-
----
-
 ## [8.20.0] - 2025-10-13
 
 ### 🎯 Major Features
