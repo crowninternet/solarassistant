@@ -507,7 +507,37 @@ Battery/
 ├── data_history.json       # Historical data storage (365 days)
 ├── daily_stats.json        # Daily statistics (resets at midnight)
 ├── alert_settings.json     # Alert and charger control settings
-└── README.md              # This file
+├── README.md              # This file
+├── CHANGELOG.md           # Version history and changes
+├── BACKUP_AND_RESTORE.md  # Complete backup and restore guide
+└── SECURITY_GUIDE.md      # Authentication, SSL, and security guide
+```
+
+---
+
+## 📚 Documentation
+
+### 📖 User Guides
+- **[BACKUP_AND_RESTORE.md](BACKUP_AND_RESTORE.md)** - Complete backup and restore procedures
+- **[SECURITY_GUIDE.md](SECURITY_GUIDE.md)** - Authentication, SSL setup, and security best practices
+
+### 📋 Reference
+- **[CHANGELOG.md](CHANGELOG.md)** - Detailed version history and feature changes
+- **[README.md](README.md)** - This overview and quick start guide
+
+### 🔧 Quick Commands
+```bash
+# Create backup
+npm run backup
+
+# Restore latest backup
+npm run restore
+
+# Check application status
+pm2 status
+
+# View logs
+pm2 logs solar-dashboard
 ```
 
 ---

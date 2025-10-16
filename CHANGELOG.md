@@ -4,6 +4,43 @@ All notable changes to the SolarAssistant Dashboard will be documented in this f
 
 ---
 
+## [8.20.0] - 2025-10-13
+
+### 🎯 Major Features
+- **Battery Charge Bar Chart**: Visual progress bar with color-coded percentages
+  - Replaces static status bars with dynamic progress bar matching array cards
+  - Color-coded SOC ranges: Green (60-100%), Orange (30-59%), Red (0-29%)
+  - Real-time updates every 3 seconds with live MQTT data
+  - Improved visual consistency with existing array performance charts
+
+### ✨ Enhancements
+- **Peak Performance Time Period Integration**:
+  - Peak performance card now displays data based on selected time period
+  - Updates dynamically when time period filter changes
+  - Initial load reflects default 1-hour period
+  - Prevents reversion to default during 3-second refresh cycle
+
+### 🔧 Technical Improvements
+- **Battery Chart Implementation**:
+  - New `updateBatteryStatusChart()` function for dynamic bar updates
+  - Adapts existing array performance chart structure
+  - Maintains real-time MQTT integration
+  - Enhanced tooltip explaining color coding system
+
+- **Peak Performance Logic**:
+  - Modified `getPeakPerformance()` to accept time range parameter
+  - Updated `/data` API endpoint to return 1-hour peak by default
+  - Enhanced `updatePeakPerformance()` function for dynamic updates
+  - Removed conflicting updates from `updateDailyStatsDisplay()`
+
+### 🎨 UI/UX Improvements
+- Battery charge card now visually matches array cards for consistency
+- Color-coded health indicators for easy battery assessment
+- Improved tooltip explanations for new visual elements
+- Better integration with existing dashboard design language
+
+---
+
 ## [8.13.1] - 2025-10-11
 
 ### 🐛 Bug Fixes
@@ -175,5 +212,5 @@ Peak discharge alert email provides:
 
 ---
 
-**Last Updated**: October 11, 2025
+**Last Updated**: October 13, 2025
 
