@@ -5183,30 +5183,19 @@ app.get('/', requireAuth, (req, res) => {
       </div>
       
       <div class="value-card battery-soc tooltip" data-topic="solar_assistant/total/battery_state_of_charge/state">
-        <div class="help-icon" data-tooltip="Battery State of Charge (SOC) percentage. Shows how much energy is stored in your battery bank. 100% = fully charged, 0% = empty.">?</div>
-        <div class="tooltip-popup">Battery State of Charge (SOC) percentage. Shows how much energy is stored in your battery bank. 100% = fully charged, 0% = empty.</div>
+        <div class="help-icon" data-tooltip="Battery State of Charge (SOC) percentage. The progress bar shows charge level with color coding: Green (60-100%), Orange (30-59%), Red (0-29%).">?</div>
+        <div class="tooltip-popup">Battery State of Charge (SOC) percentage. The progress bar shows charge level with color coding: Green (60-100%), Orange (30-59%), Red (0-29%).</div>
         <h3>🔋 Battery Charge</h3>
         <div class="value">
           <span class="value-number">${getCurrentValue('solar_assistant/total/battery_state_of_charge/state')}</span>
           <span class="unit">%</span>
         </div>
         <div class="updated">Updated: ${getUpdateTime('solar_assistant/total/battery_state_of_charge/state')}</div>
-        <div class="status-chart" id="batteryStatusChart">
-          <div class="status-bar pending"></div>
-          <div class="status-bar pending"></div>
-          <div class="status-bar pending"></div>
-          <div class="status-bar pending"></div>
-          <div class="status-bar pending"></div>
-          <div class="status-bar pending"></div>
-          <div class="status-bar pending"></div>
-          <div class="status-bar pending"></div>
-          <div class="status-bar pending"></div>
-          <div class="status-bar pending"></div>
-          <div class="status-bar pending"></div>
-          <div class="status-bar pending"></div>
-          <div class="status-bar pending"></div>
-          <div class="status-bar pending"></div>
-          <div class="status-bar pending"></div>
+        <div class="array-performance-chart">
+          <div class="performance-bar" id="batteryChargeChart">
+            <div class="performance-fill battery-charge" style="width: 0%; background-color: #27ae60;"></div>
+          </div>
+          <div class="chart-tooltip" id="batteryChargeTooltip"></div>
         </div>
       </div>
       
@@ -6121,7 +6110,7 @@ app.get('/', requireAuth, (req, res) => {
       }
     }
     
-    // Helper function to update battery status chart
+    // Helper function to update battery charge bar chart
     function updateBatteryStatusChart(batteryData) {
       if (!batteryData || batteryData.value === null || batteryData.value === undefined) {
         return;
@@ -6132,35 +6121,36 @@ app.get('/', requireAuth, (req, res) => {
         return;
       }
       
-      const statusChart = document.getElementById('batteryStatusChart');
-      if (!statusChart) {
+      const batteryChart = document.getElementById('batteryChargeChart');
+      if (!batteryChart) {
         return;
       }
       
-      const statusBars = statusChart.querySelectorAll('.status-bar');
-      const totalBars = statusBars.length;
+      const batteryFill = batteryChart.querySelector('.battery-charge');
+      if (!batteryFill) {
+        return;
+      }
       
-      // Calculate how many bars should be active based on SOC percentage
-      const activeBars = Math.round((soc / 100) * totalBars);
+      // Set the width to the SOC percentage
+      batteryFill.style.width = soc + '%';
       
-      // Reset all bars to pending
-      statusBars.forEach(bar => {
-        bar.className = 'status-bar pending';
-      });
+      // Determine color based on SOC range: 100%-60% success, 30%-59% warning, 0%-29% danger
+      let color;
+      if (soc >= 60) {
+        color = '#27ae60'; // Success color (green)
+      } else if (soc >= 30) {
+        color = '#f39c12'; // Warning color (orange/yellow)
+      } else {
+        color = '#e74c3c'; // Danger color (red)
+      }
       
-      // Update bars based on SOC percentage
-      statusBars.forEach((bar, index) => {
-        if (index < activeBars) {
-          // Determine color based on SOC range
-          if (soc >= 40) {
-            bar.className = 'status-bar up'; // Green for 40-100%
-          } else if (soc >= 25) {
-            bar.className = 'status-bar warning'; // Yellow for 25-40%
-          } else {
-            bar.className = 'status-bar danger'; // Red for 0-25%
-          }
-        }
-      });
+      batteryFill.style.backgroundColor = color;
+      
+      // Store data for tooltips
+      batteryFill.setAttribute('data-soc', soc);
+      batteryFill.setAttribute('data-color', color);
+      
+      console.log('Updated battery charge bar to', soc + '% with color', color);
     }
     
     // Helper function to update power balance card with dynamic colors and arrows
