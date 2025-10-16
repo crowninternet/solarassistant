@@ -5085,7 +5085,7 @@ app.get('/', requireAuth, (req, res) => {
       <button class="battery-btn" onclick="window.location.href='/battery'" title="Battery Details">🔋</button>
       <button class="settings-btn" onclick="window.location.href='/settings-page'" title="Settings">⚙️</button>
       <button class="logout-btn" onclick="logout()" title="Logout">🚪</button>
-      <h1>☀️ SolarAssistant Dashboard <span style="font-size: 14px; color: var(--text-muted); font-weight: normal;">v8.20.1</span></h1>
+      <h1>☀️ SolarAssistant Dashboard <span style="font-size: 14px; color: var(--text-muted); font-weight: normal;">v8.20.2</span></h1>
       <div class="time-period-selector">
         <label for="timePeriod">📊 Time Period:</label>
             <select id="timePeriod" onchange="changeTimePeriod(this.value)">
@@ -5251,9 +5251,9 @@ app.get('/', requireAuth, (req, res) => {
         <div class="tooltip-popup">Highest solar power output recorded for the selected time period. Updates dynamically when you change the time period filter above.</div>
         <h3>🌟 Peak Performance</h3>
         <div class="value">
-          <span class="value-number" id="peakProduction" style="font-size: 14px;">${getPeakPerformance(1)}</span>
+          <span class="value-number" id="peakProduction" style="font-size: 14px;">--</span>
         </div>
-        <div class="updated" id="peakProductionLabel">Past hour</div>
+        <div class="updated" id="peakProductionLabel">Select time period</div>
       </div>
       
       <div class="value-card tooltip" style="border-left: 3px solid #9b59b6;" data-topic="solar_assistant/inverter_1/battery_voltage/state">

@@ -4,6 +4,23 @@ All notable changes to the SolarAssistant Dashboard will be documented in this f
 
 ---
 
+## [8.20.2] - 2025-10-16
+
+### 🐛 Bug Fixes
+- **Fixed Peak Performance Card Initial State**:
+  - Removed misleading "Past hour" label on initial load
+  - Peak value now shows "--" until time period is selected
+  - Label shows "Select time period" until user makes selection
+  - Eliminates confusion about which time period the peak represents
+
+### ✨ Enhancements
+- **Improved User Experience**:
+  - Clean initial state for peak performance card
+  - Consistent behavior with other dashboard elements
+  - Clear indication that time period selection is required
+
+---
+
 ## [8.20.1] - 2025-10-16
 
 ### 🐛 Bug Fixes

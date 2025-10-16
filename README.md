@@ -2,7 +2,7 @@
 
 A comprehensive Node.js dashboard that monitors your SolarAssistant solar power system via MQTT, featuring real-time updates, historical charts, dark mode, weather integration, email alerts, and automated battery charger control via IFTTT.
 
-**Current Version:** v8.20.1
+**Current Version:** v8.20.2
 
 ---
 
