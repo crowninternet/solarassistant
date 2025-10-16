@@ -4,6 +4,29 @@ All notable changes to the SolarAssistant Dashboard will be documented in this f
 
 ---
 
+## [8.20.1] - 2025-10-16
+
+### 🐛 Bug Fixes
+- **Fixed Chart Initialization Time Period Bug**:
+  - Charts now display correct data on initial time period selection
+  - Fixed issue where "Past 1 Hour" required toggling to another period first
+  - Implemented on-demand chart creation with proper time filtering
+  - Charts are now created only when user selects a time period
+  - Eliminates mismatch between dropdown selection and chart display
+
+### 🔧 Technical Improvements
+- **Chart Creation System**:
+  - Removed initial chart creation with all historical data
+  - Added `createChartsWithPeriod()` function for proper time-filtered chart creation
+  - Charts are hidden until time period is selected
+  - Improved user experience with clean initial load state
+- **User Interface**:
+  - Time period dropdown now starts with "--- Select a Time Period ---" placeholder
+  - Chart titles show without time period text until selection is made
+  - Cleaner initial dashboard appearance
+
+---
+
 ## [8.20.0] - 2025-10-13
 
 ### 🎯 Major Features

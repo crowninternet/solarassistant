@@ -5085,11 +5085,12 @@ app.get('/', requireAuth, (req, res) => {
       <button class="battery-btn" onclick="window.location.href='/battery'" title="Battery Details">🔋</button>
       <button class="settings-btn" onclick="window.location.href='/settings-page'" title="Settings">⚙️</button>
       <button class="logout-btn" onclick="logout()" title="Logout">🚪</button>
-      <h1>☀️ SolarAssistant Dashboard <span style="font-size: 14px; color: var(--text-muted); font-weight: normal;">v8.20.0</span></h1>
+      <h1>☀️ SolarAssistant Dashboard <span style="font-size: 14px; color: var(--text-muted); font-weight: normal;">v8.20.1</span></h1>
       <div class="time-period-selector">
         <label for="timePeriod">📊 Time Period:</label>
             <select id="timePeriod" onchange="changeTimePeriod(this.value)">
-              <option value="1hour" selected>Past 1 Hour</option>
+              <option value="" selected>--- Select a Time Period ---</option>
+              <option value="1hour">Past 1 Hour</option>
               <option value="12hours">Past 12 Hours</option>
               <option value="24hours">Past 24 Hours</option>
               <option value="48hours">Past 48 Hours</option>
@@ -5280,11 +5281,11 @@ app.get('/', requireAuth, (req, res) => {
     
     
     <div class="charts-container">
-      <h2 id="trendsTitle" style="margin-bottom: 30px; color: var(--text-primary); font-size: 24px;">📊 Past 1 Hour Trends</h2>
+      <h2 id="trendsTitle" style="margin-bottom: 30px; color: var(--text-primary); font-size: 24px;">📊 Trends</h2>
       
       <div class="chart-wrapper">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-          <h2 id="pvPowerTitle" style="margin: 0;">☀️ Solar Power - Total & Per Array (Past 1 Hour)</h2>
+          <h2 id="pvPowerTitle" style="margin: 0;">☀️ Solar Power - Total & Per Array</h2>
           <div style="display: flex; align-items: center; gap: 10px;">
             <label for="solarArraySelector" class="chart-selector-label">View:</label>
             <select id="solarArraySelector" onchange="changeSolarArrayView(this.value)" class="chart-selector">
@@ -5295,21 +5296,21 @@ app.get('/', requireAuth, (req, res) => {
             </select>
           </div>
         </div>
-        <div class="chart-container">
+        <div class="chart-container" id="pvPowerChartContainer" style="display: none;">
           <canvas id="pvPowerChart"></canvas>
         </div>
       </div>
       
       <div class="chart-wrapper">
-        <h2 id="batterySocTitle">🔋 Battery State of Charge (Past 1 Hour)</h2>
-        <div class="chart-container">
+        <h2 id="batterySocTitle">🔋 Battery State of Charge</h2>
+        <div class="chart-container" id="batterySocChartContainer" style="display: none;">
           <canvas id="batterySocChart"></canvas>
         </div>
       </div>
       
       <div class="chart-wrapper">
-        <h2 id="loadPowerTitle">⚡ Load Power (Past 1 Hour)</h2>
-        <div class="chart-container">
+        <h2 id="loadPowerTitle">⚡ Load Power</h2>
+        <div class="chart-container" id="loadPowerChartContainer" style="display: none;">
           <canvas id="loadPowerChart"></canvas>
         </div>
       </div>
@@ -5644,306 +5645,11 @@ app.get('/', requireAuth, (req, res) => {
       .then(historyData => {
         const data = historyData.data;
         
-        // Data reduction function to limit points for better performance
-        function reduceDataPoints(data, maxPoints = 100) {
-          if (data.length <= maxPoints) return data;
-          
-          const step = Math.ceil(data.length / maxPoints);
-          const reduced = [];
-          
-          for (let i = 0; i < data.length; i += step) {
-            const slice = data.slice(i, i + step);
-            const avgX = slice.reduce((sum, point) => sum + new Date(point.x).getTime(), 0) / slice.length;
-            const avgY = slice.reduce((sum, point) => sum + point.y, 0) / slice.length;
-            
-            reduced.push({
-              x: new Date(avgX),
-              y: Math.round(avgY * 10) / 10 // Round to 1 decimal place
-            });
-          }
-          
-          // Always include the last point
-          if (reduced.length > 0) {
-            const lastPoint = data[data.length - 1];
-            reduced[reduced.length - 1] = {
-              x: new Date(lastPoint.x),
-              y: lastPoint.y
-            };
-          }
-          
-          return reduced;
-        }
+        // Historical data is loaded and available for chart creation when time period is selected
+        
+        // Charts will be created only when user selects a time period
+        console.log('Historical data loaded - charts will be created when time period is selected');
 
-        // Common chart options
-        const commonOptions = {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: {
-            intersect: false,
-            mode: 'index'
-          },
-          plugins: {
-            legend: {
-              display: false
-            },
-            tooltip: {
-              mode: 'index',
-              intersect: false,
-              callbacks: {
-                title: function(context) {
-                  const date = new Date(context[0].parsed.x);
-                  return date.toLocaleString();
-                }
-              }
-            }
-          },
-          scales: {
-            x: {
-              type: 'time',
-              time: {
-                unit: 'minute',
-                displayFormats: {
-                  minute: 'h:mm a',
-                  hour: 'MMM d, h a',
-                  day: 'MMM d'
-                },
-                tooltipFormat: 'MMM d, yyyy h:mm a'
-              },
-              title: {
-                display: true,
-                text: 'Time',
-                font: {
-                  size: 14,
-                  weight: 'bold'
-                }
-              },
-              ticks: {
-                maxRotation: 45,
-                minRotation: 0,
-                autoSkip: true,
-                maxTicksLimit: 6,
-                font: {
-                  size: 12
-                }
-              },
-              grid: {
-                display: true,
-                color: 'rgba(0, 0, 0, 0.1)'
-              }
-            },
-            y: {
-              beginAtZero: true,
-              ticks: {
-                font: {
-                  size: 12
-                }
-              },
-              grid: {
-                color: 'rgba(0, 0, 0, 0.1)'
-              }
-            }
-          }
-        };
-        
-        // PV Power Chart - with 3 datasets (Total, Array 1, Array 2)
-        const datasets = [];
-        
-        if (data['solar_assistant/inverter_1/pv_power/state']) {
-          const pvData = data['solar_assistant/inverter_1/pv_power/state'].map(item => ({
-            x: new Date(item.timestamp),
-            y: item.value
-          }));
-          
-          const reducedPvData = reduceDataPoints(pvData, 80);
-          
-          datasets.push({
-            label: 'Total Solar Power (W)',
-            data: reducedPvData,
-            borderColor: '#f39c12',
-            backgroundColor: 'rgba(243, 156, 18, 0.1)',
-            fill: true,
-            tension: 0.3,
-            borderWidth: 2,
-            pointRadius: 0,
-            pointHoverRadius: 4,
-            spanGaps: true
-          });
-        }
-        
-        if (data['solar_assistant/inverter_1/pv_power_1/state']) {
-          const pv1Data = data['solar_assistant/inverter_1/pv_power_1/state'].map(item => ({
-            x: new Date(item.timestamp),
-            y: item.value
-          }));
-          
-          const reducedPv1Data = reduceDataPoints(pv1Data, 80);
-          
-          datasets.push({
-            label: 'Array 1 Power (W)',
-            data: reducedPv1Data,
-            borderColor: '#20b2aa',
-            backgroundColor: 'rgba(32, 178, 170, 0.1)',
-            fill: false,
-            tension: 0.3,
-            borderWidth: 2,
-            pointRadius: 0,
-            pointHoverRadius: 3,
-            spanGaps: true
-          });
-        }
-        
-        if (data['solar_assistant/inverter_1/pv_power_2/state']) {
-          const pv2Data = data['solar_assistant/inverter_1/pv_power_2/state'].map(item => ({
-            x: new Date(item.timestamp),
-            y: item.value
-          }));
-          
-          const reducedPv2Data = reduceDataPoints(pv2Data, 80);
-          
-          datasets.push({
-            label: 'Array 2 Power (W)',
-            data: reducedPv2Data,
-            borderColor: '#8e44ad',
-            backgroundColor: 'rgba(142, 68, 173, 0.1)',
-            fill: false,
-            tension: 0.3,
-            borderWidth: 2,
-            pointRadius: 0,
-            pointHoverRadius: 3,
-            spanGaps: true
-          });
-        }
-        
-        if (datasets.length > 0) {
-          pvPowerChart = new Chart(document.getElementById('pvPowerChart'), {
-            type: 'line',
-            data: {
-              datasets: datasets
-            },
-            options: {
-              ...commonOptions,
-              plugins: {
-                ...commonOptions.plugins,
-                legend: {
-                  display: true,
-                  position: 'top',
-                  labels: {
-                    color: getComputedStyle(document.documentElement).getPropertyValue('--text-primary') || '#333',
-                    usePointStyle: true,
-                    pointStyle: 'line',
-                    padding: 15,
-                    font: {
-                      size: 12,
-                      weight: 'bold'
-                    }
-                  }
-                }
-              },
-              scales: {
-                ...commonOptions.scales,
-                y: {
-                  ...commonOptions.scales.y,
-                  title: {
-                    display: true,
-                    text: 'Power (W)'
-                  }
-                }
-              }
-            }
-          });
-        }
-        
-        // Battery SOC Chart
-        if (data['solar_assistant/total/battery_state_of_charge/state']) {
-          const socData = data['solar_assistant/total/battery_state_of_charge/state'].map(item => ({
-            x: new Date(item.timestamp),
-            y: item.value
-          }));
-          
-          const reducedSocData = reduceDataPoints(socData, 60);
-          
-          batterySocChart = new Chart(document.getElementById('batterySocChart'), {
-            type: 'line',
-            data: {
-              datasets: [{
-                label: 'Battery SOC (%)',
-                data: reducedSocData,
-                borderColor: '#27ae60',
-                backgroundColor: 'rgba(39, 174, 96, 0.1)',
-                fill: true,
-                tension: 0.3,
-                borderWidth: 2,
-                pointRadius: 0,
-                pointHoverRadius: 4,
-                spanGaps: true
-              }]
-            },
-            options: {
-              ...commonOptions,
-              scales: {
-                ...commonOptions.scales,
-                y: {
-                  beginAtZero: true,
-                  max: 100,
-                  title: {
-                    display: true,
-                    text: 'State of Charge (%)'
-                  }
-                }
-              }
-            }
-          });
-        }
-        
-        // Load Power Chart
-        if (data['solar_assistant/inverter_1/load_power/state']) {
-          const loadData = data['solar_assistant/inverter_1/load_power/state'].map(item => ({
-            x: new Date(item.timestamp),
-            y: item.value
-          }));
-          
-          const reducedLoadData = reduceDataPoints(loadData, 60);
-          
-          loadPowerChart = new Chart(document.getElementById('loadPowerChart'), {
-            type: 'line',
-            data: {
-              datasets: [{
-                label: 'Load Power (W)',
-                data: reducedLoadData,
-                borderColor: '#3498db',
-                backgroundColor: 'rgba(52, 152, 219, 0.1)',
-                fill: true,
-                tension: 0.3,
-                borderWidth: 2,
-                pointRadius: 0,
-                pointHoverRadius: 4,
-                spanGaps: true
-              }]
-            },
-            options: {
-              ...commonOptions,
-              scales: {
-                ...commonOptions.scales,
-                y: {
-                  ...commonOptions.scales.y,
-                  title: {
-                    display: true,
-                    text: 'Power (W)'
-                  }
-                }
-              }
-            }
-          });
-        }
-        
-        // Initialize time range to default (1 hour)
-        const now = new Date();
-        currentTimeRange.min = new Date(now.getTime() - 60 * 60 * 1000);
-        currentTimeRange.max = now;
-        
-        // Initialize peak performance for default period (1 hour)
-        updatePeakPerformance('1hour');
-        
         
         // Initialize drag and drop
         initDragAndDrop();
@@ -6360,10 +6066,399 @@ app.get('/', requireAuth, (req, res) => {
       }
     }
     
-    // Function to change time period for charts
-    function changeTimePeriod(period) {
+    // Function to create charts with a specific time period
+    function createChartsWithPeriod(period) {
       const now = new Date();
       let startTime;
+      
+      switch(period) {
+        case '1hour':
+          startTime = new Date(now.getTime() - 60 * 60 * 1000);
+          break;
+        case '12hours':
+          startTime = new Date(now.getTime() - 12 * 60 * 60 * 1000);
+          break;
+        case '24hours':
+          startTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+          break;
+        case '48hours':
+          startTime = new Date(now.getTime() - 48 * 60 * 60 * 1000);
+          break;
+        case '7days':
+          startTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case '1month':
+          startTime = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          break;
+        case '1year':
+          startTime = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+          break;
+        default:
+          startTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      }
+      
+      // Update time unit and display formats based on period
+      let timeUnit = 'hour';
+      let maxTicks = 8;
+      let displayFormats = {
+        minute: 'h:mm a',
+        hour: 'h:mm a',
+        day: 'MMM d'
+      };
+      
+      switch(period) {
+        case '1hour':
+          timeUnit = 'minute';
+          maxTicks = 6;
+          displayFormats.minute = 'h:mm a';
+          break;
+        case '12hours':
+          timeUnit = 'hour';
+          maxTicks = 6;
+          break;
+        case '24hours':
+          timeUnit = 'hour';
+          maxTicks = 8;
+          break;
+        case '48hours':
+          timeUnit = 'hour';
+          maxTicks = 12;
+          break;
+        case '7days':
+          timeUnit = 'day';
+          maxTicks = 7;
+          break;
+        case '1month':
+          timeUnit = 'day';
+          maxTicks = 15;
+          break;
+        case '1year':
+          timeUnit = 'month';
+          maxTicks = 12;
+          break;
+      }
+      
+      // Fetch historical data and create charts with filtered data
+      fetch('/data/history')
+        .then(response => response.json())
+        .then(historyData => {
+          const data = historyData.data;
+          
+          // Data filtering and reduction function
+          function filterAndReduce(topicData, maxPoints = 100) {
+            if (!topicData || topicData.length === 0) return [];
+            
+            // Filter to time range first
+            const filtered = topicData.filter(item => {
+              const itemTime = new Date(item.timestamp);
+              return itemTime >= startTime && itemTime <= now;
+            });
+            
+            // Then reduce points if needed
+            if (filtered.length <= maxPoints) return filtered.map(item => ({
+              x: new Date(item.timestamp),
+              y: item.value
+            }));
+            
+            const step = Math.ceil(filtered.length / maxPoints);
+            const reduced = [];
+            for (let i = 0; i < filtered.length; i += step) {
+              const slice = filtered.slice(i, i + step);
+              const avgX = slice.reduce((sum, point) => sum + new Date(point.timestamp).getTime(), 0) / slice.length;
+              const avgY = slice.reduce((sum, point) => sum + point.value, 0) / slice.length;
+              reduced.push({ x: new Date(avgX), y: avgY });
+            }
+            return reduced;
+          }
+
+          // Common chart options with time range set
+          const commonOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+              intersect: false,
+              mode: 'index'
+            },
+            plugins: {
+              legend: {
+                display: false
+              },
+              tooltip: {
+                mode: 'index',
+                intersect: false,
+                callbacks: {
+                  title: function(context) {
+                    const date = new Date(context[0].parsed.x);
+                    return date.toLocaleString();
+                  }
+                }
+              }
+            },
+            scales: {
+              x: {
+                type: 'time',
+                min: startTime,
+                max: now,
+                time: {
+                  unit: timeUnit,
+                  displayFormats: displayFormats,
+                  tooltipFormat: 'MMM d, yyyy h:mm a'
+                },
+                title: {
+                  display: true,
+                  text: 'Time',
+                  font: {
+                    size: 14,
+                    weight: 'bold'
+                  }
+                },
+                ticks: {
+                  maxRotation: 45,
+                  minRotation: 0,
+                  autoSkip: true,
+                  maxTicksLimit: maxTicks,
+                  font: {
+                    size: 12
+                  }
+                },
+                grid: {
+                  display: true,
+                  color: 'rgba(0, 0, 0, 0.1)'
+                }
+              },
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  font: {
+                    size: 12
+                  }
+                },
+                grid: {
+                  color: 'rgba(0, 0, 0, 0.1)'
+                }
+              }
+            }
+          };
+          
+          // Create PV Power Chart
+          const datasets = [];
+          
+          if (data['solar_assistant/inverter_1/pv_power/state']) {
+            const pvTotalData = filterAndReduce(data['solar_assistant/inverter_1/pv_power/state'], 100);
+            datasets.push({
+              label: 'Total Solar Power (W)',
+              data: pvTotalData,
+              borderColor: '#f39c12',
+              backgroundColor: 'rgba(243, 156, 18, 0.1)',
+              fill: true,
+              tension: 0.3,
+              borderWidth: 2,
+              pointRadius: 0,
+              pointHoverRadius: 4,
+              spanGaps: true
+            });
+          }
+          
+          if (data['solar_assistant/inverter_1/pv_power_1/state']) {
+            const pv1Data = filterAndReduce(data['solar_assistant/inverter_1/pv_power_1/state'], 80);
+            datasets.push({
+              label: 'Array 1 Power (W)',
+              data: pv1Data,
+              borderColor: '#20b2aa',
+              backgroundColor: 'rgba(32, 178, 170, 0.1)',
+              fill: false,
+              tension: 0.3,
+              borderWidth: 2,
+              pointRadius: 0,
+              pointHoverRadius: 3,
+              spanGaps: true
+            });
+          }
+          
+          if (data['solar_assistant/inverter_1/pv_power_2/state']) {
+            const pv2Data = filterAndReduce(data['solar_assistant/inverter_1/pv_power_2/state'], 80);
+            datasets.push({
+              label: 'Array 2 Power (W)',
+              data: pv2Data,
+              borderColor: '#8e44ad',
+              backgroundColor: 'rgba(142, 68, 173, 0.1)',
+              fill: false,
+              tension: 0.3,
+              borderWidth: 2,
+              pointRadius: 0,
+              pointHoverRadius: 3,
+              spanGaps: true
+            });
+          }
+          
+          if (datasets.length > 0) {
+            pvPowerChart = new Chart(document.getElementById('pvPowerChart'), {
+              type: 'line',
+              data: {
+                datasets: datasets
+              },
+              options: {
+                ...commonOptions,
+                plugins: {
+                  ...commonOptions.plugins,
+                  legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                      color: getComputedStyle(document.documentElement).getPropertyValue('--text-primary') || '#333',
+                      usePointStyle: true,
+                      pointStyle: 'line',
+                      padding: 15,
+                      font: {
+                        size: 12,
+                        weight: 'bold'
+                      }
+                    }
+                  }
+                },
+                scales: {
+                  ...commonOptions.scales,
+                  y: {
+                    ...commonOptions.scales.y,
+                    title: {
+                      display: true,
+                      text: 'Power (W)'
+                    }
+                  }
+                }
+              }
+            });
+          }
+          
+          // Create Battery SOC Chart
+          if (data['solar_assistant/total/battery_state_of_charge/state']) {
+            const socData = filterAndReduce(data['solar_assistant/total/battery_state_of_charge/state'], 100);
+            
+            batterySocChart = new Chart(document.getElementById('batterySocChart'), {
+              type: 'line',
+              data: {
+                datasets: [{
+                  label: 'Battery SOC (%)',
+                  data: socData,
+                  borderColor: '#27ae60',
+                  backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                  fill: true,
+                  tension: 0.3,
+                  borderWidth: 2,
+                  pointRadius: 0,
+                  pointHoverRadius: 4,
+                  spanGaps: true
+                }]
+              },
+              options: {
+                ...commonOptions,
+                scales: {
+                  ...commonOptions.scales,
+                  y: {
+                    beginAtZero: true,
+                    max: 100,
+                    title: {
+                      display: true,
+                      text: 'State of Charge (%)'
+                    }
+                  }
+                }
+              }
+            });
+          }
+          
+          // Create Load Power Chart
+          if (data['solar_assistant/inverter_1/load_power/state']) {
+            const loadData = filterAndReduce(data['solar_assistant/inverter_1/load_power/state'], 100);
+            
+            loadPowerChart = new Chart(document.getElementById('loadPowerChart'), {
+              type: 'line',
+              data: {
+                datasets: [{
+                  label: 'Load Power (W)',
+                  data: loadData,
+                  borderColor: '#3498db',
+                  backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                  fill: true,
+                  tension: 0.3,
+                  borderWidth: 2,
+                  pointRadius: 0,
+                  pointHoverRadius: 4,
+                  spanGaps: true
+                }]
+              },
+              options: {
+                ...commonOptions,
+                scales: {
+                  ...commonOptions.scales,
+                  y: {
+                    ...commonOptions.scales.y,
+                    title: {
+                      display: true,
+                      text: 'Power (W)'
+                    }
+                  }
+                }
+              }
+            });
+          }
+          
+          // Update chart titles and show charts
+          const periodLabels = {
+            '1hour': 'Past 1 Hour',
+            '12hours': 'Past 12 Hours',
+            '24hours': 'Past 24 Hours',
+            '48hours': 'Past 48 Hours',
+            '7days': 'Past 7 Days',
+            '1month': 'Past Month',
+            '1year': 'Past Year'
+          };
+          
+          const periodLabel = periodLabels[period] || 'Past 1 Hour';
+          const pvPowerTitle = document.getElementById('pvPowerTitle');
+          const batterySocTitle = document.getElementById('batterySocTitle');
+          const loadPowerTitle = document.getElementById('loadPowerTitle');
+          
+          if (pvPowerTitle) pvPowerTitle.textContent = '☀️ Solar Power - Total & Per Array (' + periodLabel + ')';
+          if (batterySocTitle) batterySocTitle.textContent = '🔋 Battery State of Charge (' + periodLabel + ')';
+          if (loadPowerTitle) loadPowerTitle.textContent = '⚡ Load Power (' + periodLabel + ')';
+          
+          // Show the charts
+          const pvContainer = document.getElementById('pvPowerChartContainer');
+          const batteryContainer = document.getElementById('batterySocChartContainer');
+          const loadContainer = document.getElementById('loadPowerChartContainer');
+          
+          if (pvContainer) pvContainer.style.display = 'block';
+          if (batteryContainer) batteryContainer.style.display = 'block';
+          if (loadContainer) loadContainer.style.display = 'block';
+          
+          // Update peak performance for the selected time period
+          updatePeakPerformance(period);
+          
+          console.log('Charts created successfully with period:', period, 'Time range:', startTime, 'to', now);
+        })
+        .catch(error => {
+          console.error('Error creating charts with period:', error);
+        });
+    }
+
+    // Function to change time period for charts
+    function changeTimePeriod(period) {
+      // Handle empty selection - don't show charts yet
+      if (!period || period === '') {
+        console.log('No time period selected - charts will remain hidden until selection is made');
+        return;
+      }
+      
+      const now = new Date();
+      let startTime;
+      
+      // If charts don't exist yet, create them first
+      if (!pvPowerChart || !batterySocChart || !loadPowerChart) {
+        console.log('Creating charts for first time with period:', period);
+        createChartsWithPeriod(period);
+        return;
+      }
       
       switch(period) {
         case '1hour':
@@ -6561,6 +6656,15 @@ app.get('/', requireAuth, (req, res) => {
       
       // Update peak performance for the selected time period
       updatePeakPerformance(period);
+      
+      // Show the charts now that a time period has been selected
+      const pvContainer = document.getElementById('pvPowerChartContainer');
+      const batteryContainer = document.getElementById('batterySocChartContainer');
+      const loadContainer = document.getElementById('loadPowerChartContainer');
+      
+      if (pvContainer) pvContainer.style.display = 'block';
+      if (batteryContainer) batteryContainer.style.display = 'block';
+      if (loadContainer) loadContainer.style.display = 'block';
       
       console.log('Time period changed to:', period, 'Time range:', startTime, 'to', now);
     }
