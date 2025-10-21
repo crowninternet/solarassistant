@@ -4,7 +4,7 @@
 # PROXMOX 9.0 SOLARASSISTANT INSTALLATION SCRIPT
 # ═══════════════════════════════════════════════════════════════════════════
 # 
-# Version: 2.1.0
+# Version: 2.1.2
 # This script automates the deployment of the SolarAssistant Monitor
 # Node.js application in an LXC container on Proxmox VE 9.0.x
 #
@@ -697,6 +697,27 @@ EOF"
 }
 
 # ═══════════════════════════════════════════════════════════════════════════
+# SSL CERTIFICATE FUNCTIONS
+# ═══════════════════════════════════════════════════════════════════════════
+
+# Generate self-signed SSL certificates
+generate_ssl_certificates() {
+    local ctid=$1
+    
+    log_step "Generating self-signed SSL certificates..."
+    
+    pct exec "$ctid" -- bash -c "
+        cd $APP_INSTALL_DIR &&
+        mkdir -p ssl &&
+        openssl req -x509 -newkey rsa:4096 -keyout ssl/server.key -out ssl/server.crt -days 365 -nodes -subj '/C=US/ST=State/L=City/O=Organization/CN=localhost' &&
+        chmod 600 ssl/server.key &&
+        chmod 644 ssl/server.crt
+    "
+    
+    log_success "SSL certificates generated"
+}
+
+# ═══════════════════════════════════════════════════════════════════════════
 # PM2 CONFIGURATION FUNCTIONS
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -877,6 +898,9 @@ main() {
     download_app_from_github "$CTID"
     install_app_dependencies "$CTID"
     create_env_file "$CTID" "$MQTT_IP" "$WEATHER_LAT" "$WEATHER_LON" "$DEFAULT_PORT" "$ADMIN_USERNAME" "$ADMIN_PASSWORD" "$SENDGRID_CONFIG"
+    
+    # SSL certificate generation
+    generate_ssl_certificates "$CTID"
     
     # PM2 configuration
     configure_pm2 "$CTID"
