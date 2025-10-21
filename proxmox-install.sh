@@ -765,7 +765,12 @@ main() {
     check_template
     
     # Check for force interactive mode or if running interactively
+    echo -e "\n${YELLOW}DEBUG: Checking interactive mode...${NC}"
+    echo "DEBUG: Script arguments: $@"
+    echo "DEBUG: Terminal check: $([[ -t 0 ]] && echo "interactive" || echo "non-interactive")"
+    
     if [[ "$1" == "--interactive" ]] || [[ "$1" == "-i" ]] || [[ -t 0 ]]; then
+        echo -e "\n${GREEN}DEBUG: Running in interactive mode${NC}"
         # Interactive configuration
         echo -e "\n${WHITE}Container Configuration${NC}"
         echo "══════════════════════════════════════════════════════════════════════════"
@@ -794,6 +799,7 @@ main() {
         SENDGRID_CONFIG=$(prompt_sendgrid_config)
     else
         # Non-interactive mode - use defaults and show guidance
+        echo -e "\n${RED}DEBUG: Running in non-interactive mode${NC}"
         log_info "Non-interactive mode detected (curl | bash)"
         echo -e "\n${YELLOW}══════════════════════════════════════════════════════════════════════════${NC}"
         echo -e "${YELLOW}                    NON-INTERACTIVE MODE DETECTED${NC}"
