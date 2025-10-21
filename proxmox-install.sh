@@ -16,8 +16,8 @@
 # - Comprehensive error handling and logging
 #
 # Usage:
-#   ./proxmox-install.sh                    # Interactive mode
-#   CTID=100 HOSTNAME=solarassistant ./proxmox-install.sh  # Non-interactive
+#   ./proxmox-install.sh                    # Interactive mode (recommended)
+#   curl -fsSL https://raw.githubusercontent.com/crowninternet/solarassistant/master/proxmox-install.sh | bash
 #
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -42,7 +42,7 @@ DEFAULT_MQTT_IP="localhost"
 DEFAULT_WEATHER_LAT="33.2487"  # Queen Creek, AZ (from app.js)
 DEFAULT_WEATHER_LON="-111.6343"
 DEFAULT_PORT="3434"
-DEFAULT_APP_DIR="/Users/jmahon/Documents/Battery"
+# App will be deployed from GitHub, no local directory needed
 
 # Template and container settings
 DEBIAN_TEMPLATE="debian-12-standard_12.12-1_amd64.tar.zst"
@@ -291,29 +291,6 @@ prompt_weather_coords() {
     echo "$lat $lon"
 }
 
-# Prompt for application directory
-prompt_app_dir() {
-    local app_dir=${APP_DIR:-$DEFAULT_APP_DIR}
-    
-    while true; do
-        read -p "Local SolarAssistant app directory [$app_dir]: " input_app_dir
-        app_dir=${input_app_dir:-$app_dir}
-        
-        if [[ ! -d "$app_dir" ]]; then
-            log_error "Directory '$app_dir' does not exist"
-            continue
-        fi
-        
-        if [[ ! -f "$app_dir/app.js" ]] || [[ ! -f "$app_dir/package.json" ]]; then
-            log_error "Directory '$app_dir' does not contain SolarAssistant files (app.js, package.json)"
-            continue
-        fi
-        
-        break
-    done
-    
-    echo "$app_dir"
-}
 
 # ═══════════════════════════════════════════════════════════════════════════
 # CONTAINER CREATION FUNCTIONS
@@ -432,17 +409,19 @@ create_app_directory() {
     log_success "Application directory created"
 }
 
-# Copy application files
-copy_app_files() {
+# Download application from GitHub
+download_app_from_github() {
     local ctid=$1
-    local app_dir=$2
     
-    log_step "Copying application files..."
+    log_step "Downloading SolarAssistant application from GitHub..."
     
-    # Copy all files except node_modules and backups
-    pct push "$ctid" "$app_dir" "$APP_INSTALL_DIR/" --recursive --exclude "node_modules" --exclude "backups"
+    pct exec "$ctid" -- bash -c "
+        cd $APP_INSTALL_DIR &&
+        curl -fsSL https://github.com/crowninternet/solarassistant/archive/master.tar.gz | tar -xz --strip-components=1 &&
+        rm -rf backups node_modules
+    "
     
-    log_success "Application files copied"
+    log_success "Application downloaded from GitHub"
 }
 
 # Install application dependencies
@@ -548,43 +527,20 @@ main() {
     check_proxmox_version
     check_template
     
-    # Interactive configuration (unless environment variables are set)
-    if [[ -z "${CTID:-}" ]] && [[ -t 0 ]]; then
-        echo -e "\n${WHITE}Container Configuration${NC}"
-        echo "══════════════════════════════════════════════════════════════════════════"
-        
-        CTID=$(prompt_ctid)
-        HOSTNAME=$(prompt_hostname)
-        MEMORY=$(prompt_memory)
-        CORES=$(prompt_cores)
-    else
-        # Use environment variables with defaults
-        CTID=${CTID:-$DEFAULT_CTID}
-        HOSTNAME=${HOSTNAME:-$DEFAULT_HOSTNAME}
-        MEMORY=${MEMORY:-$DEFAULT_MEMORY}
-        CORES=${CORES:-$DEFAULT_CORES}
-        
-        log_info "Using environment variables for container configuration"
-        log_info "Container ID: $CTID, Hostname: $HOSTNAME, Memory: ${MEMORY}MB, Cores: $CORES"
-    fi
+    # Interactive configuration
+    echo -e "\n${WHITE}Container Configuration${NC}"
+    echo "══════════════════════════════════════════════════════════════════════════"
     
-    if [[ -z "${MQTT_IP:-}" ]] && [[ -t 0 ]]; then
-        echo -e "\n${WHITE}Application Configuration${NC}"
-        echo "══════════════════════════════════════════════════════════════════════════"
-        
-        MQTT_IP=$(prompt_mqtt_ip)
-        read -r WEATHER_LAT WEATHER_LON <<< "$(prompt_weather_coords)"
-        APP_DIR=$(prompt_app_dir)
-    else
-        # Use environment variables with defaults
-        MQTT_IP=${MQTT_IP:-$DEFAULT_MQTT_IP}
-        WEATHER_LAT=${WEATHER_LAT:-$DEFAULT_WEATHER_LAT}
-        WEATHER_LON=${WEATHER_LON:-$DEFAULT_WEATHER_LON}
-        APP_DIR=${APP_DIR:-$DEFAULT_APP_DIR}
-        
-        log_info "Using environment variables for application configuration"
-        log_info "MQTT IP: $MQTT_IP, Weather: $WEATHER_LAT,$WEATHER_LON, App Dir: $APP_DIR"
-    fi
+    CTID=$(prompt_ctid)
+    HOSTNAME=$(prompt_hostname)
+    MEMORY=$(prompt_memory)
+    CORES=$(prompt_cores)
+    
+    echo -e "\n${WHITE}Application Configuration${NC}"
+    echo "══════════════════════════════════════════════════════════════════════════"
+    
+    MQTT_IP=$(prompt_mqtt_ip)
+    read -r WEATHER_LAT WEATHER_LON <<< "$(prompt_weather_coords)"
     
     # Store CTID for cleanup
     CREATED_CTID=$CTID
@@ -598,7 +554,7 @@ main() {
     echo "CPU Cores: $CORES"
     echo "MQTT Broker: $MQTT_IP"
     echo "Weather Coordinates: $WEATHER_LAT, $WEATHER_LON"
-    echo "App Directory: $APP_DIR"
+    echo "App Source: GitHub Repository"
     echo "══════════════════════════════════════════════════════════════════════════"
     
     if [[ -t 0 ]]; then
@@ -622,7 +578,7 @@ main() {
     
     # Application deployment
     create_app_directory "$CTID"
-    copy_app_files "$CTID" "$APP_DIR"
+    download_app_from_github "$CTID"
     install_app_dependencies "$CTID"
     create_env_file "$CTID" "$MQTT_IP" "$WEATHER_LAT" "$WEATHER_LON" "$DEFAULT_PORT"
     
