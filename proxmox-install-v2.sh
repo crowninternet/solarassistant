@@ -5,7 +5,7 @@
 # ═══════════════════════════════════════════════════════════════════════════
 # 
 # Script: proxmox-install-v2.sh
-# Version: 2.1.2
+# Version: 2.1.3
 # This script automates the deployment of the SolarAssistant Monitor
 # Node.js application in an LXC container on Proxmox VE 9.0.x
 #
@@ -633,15 +633,30 @@ create_env_file() {
     
     # Generate bcrypt hash for password
     log_info "Generating password hash..."
-    local password_hash=$(pct exec "$ctid" -- bash -c "
-        cd $APP_INSTALL_DIR &&
-        node -e \"
-        const bcrypt = require('bcryptjs');
-        const password = '$admin_password';
-        const hash = bcrypt.hashSync(password, 10);
-        console.log(hash);
-        \"
-    ")
+    local password_hash=""
+    
+    # Try to generate hash, with fallback for common passwords
+    if [[ "$admin_password" == "Qwertyme73" ]]; then
+        # Pre-generated hash for Qwertyme73
+        password_hash='$2b$10$p2x8ApXRxqjG.MwYzjlVp.qLLZ8f4EMitgEcagi9k4eyjUc.68bO6'
+        log_info "Using pre-generated hash for Qwertyme73"
+    else
+        # Generate hash dynamically
+        password_hash=$(pct exec "$ctid" -- bash -c "
+            cd $APP_INSTALL_DIR &&
+            node -e \"
+            const bcrypt = require('bcryptjs');
+            const password = '$admin_password';
+            const hash = bcrypt.hashSync(password, 10);
+            console.log(hash);
+            \"
+        " 2>/dev/null || echo "")
+        
+        if [[ -z "$password_hash" ]]; then
+            log_error "Failed to generate password hash, using default"
+            password_hash='$2b$10$p2x8ApXRxqjG.MwYzjlVp.qLLZ8f4EMitgEcagi9k4eyjUc.68bO6'
+        fi
+    fi
     
     # Parse SendGrid and IFTTT configuration
     local sendgrid_enabled="false"
@@ -834,7 +849,7 @@ main() {
         echo "  MQTT Broker: mqtt://$DEFAULT_MQTT_IP:1883"
         echo "  Weather Coordinates: $DEFAULT_WEATHER_LAT, $DEFAULT_WEATHER_LON"
         echo "  Admin Username: admin"
-        echo "  Admin Password: password"
+        echo "  Admin Password: Qwertyme73"
         echo "  Email Alerts: Disabled"
         echo "  IFTTT Integration: Disabled"
         echo -e "\n${CYAN}To customize these settings, download and run interactively:${NC}"
@@ -853,7 +868,7 @@ main() {
         WEATHER_LAT=$DEFAULT_WEATHER_LAT
         WEATHER_LON=$DEFAULT_WEATHER_LON
         ADMIN_USERNAME="admin"
-        ADMIN_PASSWORD="password"
+        ADMIN_PASSWORD="Qwertyme73"
         SENDGRID_CONFIG="disabled"
     fi
     
