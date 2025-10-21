@@ -311,8 +311,16 @@ prompt_weather_coords() {
         read -p "Weather latitude [$lat]: " input_lat
         lat=${input_lat:-$lat}
         
-        if [[ ! "$lat" =~ ^-?[0-9]+\.?[0-9]*$ ]] || (( $(echo "$lat < -90 || $lat > 90" | bc -l) )); then
-            log_error "Latitude must be a number between -90 and 90"
+        # Simple validation for latitude (-90 to 90)
+        if [[ ! "$lat" =~ ^-?[0-9]+\.?[0-9]*$ ]]; then
+            log_error "Latitude must be a valid number"
+            continue
+        fi
+        
+        # Convert to integer for range check (multiply by 100 to avoid floating point issues)
+        local lat_int=$(echo "$lat * 100" | awk '{printf "%.0f", $1}')
+        if [[ $lat_int -lt -9000 ]] || [[ $lat_int -gt 9000 ]]; then
+            log_error "Latitude must be between -90 and 90"
             continue
         fi
         
@@ -323,8 +331,16 @@ prompt_weather_coords() {
         read -p "Weather longitude [$lon]: " input_lon
         lon=${input_lon:-$lon}
         
-        if [[ ! "$lon" =~ ^-?[0-9]+\.?[0-9]*$ ]] || (( $(echo "$lon < -180 || $lon > 180" | bc -l) )); then
-            log_error "Longitude must be a number between -180 and 180"
+        # Simple validation for longitude (-180 to 180)
+        if [[ ! "$lon" =~ ^-?[0-9]+\.?[0-9]*$ ]]; then
+            log_error "Longitude must be a valid number"
+            continue
+        fi
+        
+        # Convert to integer for range check (multiply by 100 to avoid floating point issues)
+        local lon_int=$(echo "$lon * 100" | awk '{printf "%.0f", $1}')
+        if [[ $lon_int -lt -18000 ]] || [[ $lon_int -gt 18000 ]]; then
+            log_error "Longitude must be between -180 and 180"
             continue
         fi
         
