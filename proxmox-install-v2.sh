@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # ═══════════════════════════════════════════════════════════════════════════
-# PROXMOX 9.0 SOLARASSISTANT INSTALLATION SCRIPT v2
+# PROXMOX 9.0 SOLARASSISTANT INSTALLATION SCRIPT v3
 # ═══════════════════════════════════════════════════════════════════════════
 # 
 # Script: proxmox-install-v2.sh
-# Version: 2.1.3
+# Version: 3.0.0
 # This script automates the deployment of the SolarAssistant Monitor
 # Node.js application in an LXC container on Proxmox VE 9.0.x
 #
@@ -61,7 +61,7 @@ fi
 # ═══════════════════════════════════════════════════════════════════════════
 
 # Script metadata
-SCRIPT_VERSION="1.0.0"
+SCRIPT_VERSION="3.0.0"
 SCRIPT_NAME="Proxmox SolarAssistant Installer"
 LOG_FILE="/root/solarassistant-install.log"
 
