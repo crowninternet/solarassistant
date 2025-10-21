@@ -4,8 +4,16 @@
 # PROXMOX 9.0 SOLARASSISTANT INSTALLATION SCRIPT
 # ═══════════════════════════════════════════════════════════════════════════
 # 
+# Version: 2.0.0
 # This script automates the deployment of the SolarAssistant Monitor
 # Node.js application in an LXC container on Proxmox VE 9.0.x
+#
+# Enhanced Features:
+# - HTTPS with self-signed SSL certificates
+# - JWT Authentication with configurable credentials
+# - SendGrid Email Alerts configuration
+# - Interactive and non-interactive installation modes
+# - Comprehensive error handling and logging
 #
 # Features:
 # - Interactive configuration with sensible defaults
@@ -325,6 +333,91 @@ prompt_weather_coords() {
     echo "$lat $lon"
 }
 
+# Prompt for authentication credentials
+prompt_auth_credentials() {
+    local username=${ADMIN_USERNAME:-"admin"}
+    local password=""
+    
+    while true; do
+        read -p "Admin username [$username]: " input_username
+        username=${input_username:-$username}
+        
+        if [[ -z "$username" ]]; then
+            log_error "Username cannot be empty"
+            continue
+        fi
+        
+        break
+    done
+    
+    while true; do
+        read -s -p "Admin password: " password
+        echo
+        
+        if [[ -z "$password" ]]; then
+            log_error "Password cannot be empty"
+            continue
+        fi
+        
+        if [[ ${#password} -lt 6 ]]; then
+            log_error "Password must be at least 6 characters long"
+            continue
+        fi
+        
+        break
+    done
+    
+    echo "$username $password"
+}
+
+# Prompt for SendGrid configuration
+prompt_sendgrid_config() {
+    local sendgrid_enabled=""
+    local api_key=""
+    local from_email=""
+    local to_email=""
+    
+    while true; do
+        read -p "Enable email alerts? [y/N]: " sendgrid_enabled
+        sendgrid_enabled=${sendgrid_enabled:-n}
+        
+        if [[ "$sendgrid_enabled" =~ ^[Yy]$ ]]; then
+            while true; do
+                read -p "SendGrid API Key: " api_key
+                if [[ -z "$api_key" ]]; then
+                    log_error "SendGrid API Key is required for email alerts"
+                    continue
+                fi
+                break
+            done
+            
+            while true; do
+                read -p "From email address: " from_email
+                if [[ ! "$from_email" =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
+                    log_error "Please enter a valid email address"
+                    continue
+                fi
+                break
+            done
+            
+            while true; do
+                read -p "To email address (recipient): " to_email
+                if [[ ! "$to_email" =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
+                    log_error "Please enter a valid email address"
+                    continue
+                fi
+                break
+            done
+            
+            echo "enabled $api_key $from_email $to_email"
+            return
+        else
+            echo "disabled"
+            return
+        fi
+    done
+}
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 # CONTAINER CREATION FUNCTIONS
@@ -479,18 +572,73 @@ create_env_file() {
     local lat=$3
     local lon=$4
     local port=$5
+    local admin_username=$6
+    local admin_password=$7
+    local sendgrid_config=$8
     
     log_step "Creating environment configuration..."
+    
+    # Generate bcrypt hash for password
+    log_info "Generating password hash..."
+    local password_hash=$(pct exec "$ctid" -- bash -c "
+        cd $APP_INSTALL_DIR &&
+        node -e \"
+        const bcrypt = require('bcryptjs');
+        const password = '$admin_password';
+        const hash = bcrypt.hashSync(password, 10);
+        console.log(hash);
+        \"
+    ")
+    
+    # Parse SendGrid configuration
+    local sendgrid_enabled="false"
+    local sendgrid_api_key=""
+    local sendgrid_from_email=""
+    local sendgrid_to_email=""
+    
+    if [[ "$sendgrid_config" != "disabled" ]]; then
+        read -r sendgrid_enabled sendgrid_api_key sendgrid_from_email sendgrid_to_email <<< "$sendgrid_config"
+    fi
     
     pct exec "$ctid" -- bash -c "cat > $APP_INSTALL_DIR/.env << EOF
 PORT=$port
 MQTT_BROKER=mqtt://$mqtt_ip:1883
 WEATHER_LAT=$lat
 WEATHER_LON=$lon
+ADMIN_USERNAME=$admin_username
+ADMIN_PASSWORD_HASH=$password_hash
+JWT_SECRET=solarassistant-secret-key-\$(date +%Y%m%d)
 NODE_ENV=production
 EOF"
     
     log_success "Environment file created"
+    
+    # Create SendGrid alert settings if enabled
+    if [[ "$sendgrid_config" != "disabled" ]]; then
+        log_step "Creating SendGrid alert settings..."
+        
+        pct exec "$ctid" -- bash -c "cat > $APP_INSTALL_DIR/alert_settings.json << EOF
+{
+  \"enabled\": true,
+  \"sendgridApiKey\": \"$sendgrid_api_key\",
+  \"fromEmail\": \"$sendgrid_from_email\",
+  \"toEmail\": \"$sendgrid_to_email\",
+  \"lowThreshold\": 50,
+  \"highThreshold\": 80,
+  \"chargerControl\": {
+    \"enabled\": false,
+    \"iftttWebhookKey\": \"\",
+    \"lowThreshold\": 45,
+    \"highThreshold\": 85,
+    \"plugName\": \"Battery Charger\",
+    \"maxTemp\": 110,
+    \"cooldownMinutes\": 5
+  }
+}
+EOF"
+        
+        log_success "SendGrid alert settings created"
+    fi
 }
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -577,6 +725,16 @@ main() {
         
         MQTT_IP=$(prompt_mqtt_ip)
         read -r WEATHER_LAT WEATHER_LON <<< "$(prompt_weather_coords)"
+        
+        echo -e "\n${WHITE}Authentication Configuration${NC}"
+        echo "══════════════════════════════════════════════════════════════════════════"
+        
+        read -r ADMIN_USERNAME ADMIN_PASSWORD <<< "$(prompt_auth_credentials)"
+        
+        echo -e "\n${WHITE}Email Alerts Configuration${NC}"
+        echo "══════════════════════════════════════════════════════════════════════════"
+        
+        SENDGRID_CONFIG=$(prompt_sendgrid_config)
     else
         # Non-interactive mode - use defaults and show guidance
         log_info "Non-interactive mode detected (curl | bash)"
@@ -590,6 +748,9 @@ main() {
         echo "  CPU Cores: $DEFAULT_CORES"
         echo "  MQTT Broker: mqtt://$DEFAULT_MQTT_IP:1883"
         echo "  Weather Coordinates: $DEFAULT_WEATHER_LAT, $DEFAULT_WEATHER_LON"
+        echo "  Admin Username: admin"
+        echo "  Admin Password: password"
+        echo "  Email Alerts: Disabled"
         echo -e "\n${CYAN}To customize these settings, download and run interactively:${NC}"
         echo "  wget https://raw.githubusercontent.com/crowninternet/solarassistant/master/proxmox-install.sh"
         echo "  chmod +x proxmox-install.sh"
@@ -605,6 +766,9 @@ main() {
         MQTT_IP=$DEFAULT_MQTT_IP
         WEATHER_LAT=$DEFAULT_WEATHER_LAT
         WEATHER_LON=$DEFAULT_WEATHER_LON
+        ADMIN_USERNAME="admin"
+        ADMIN_PASSWORD="password"
+        SENDGRID_CONFIG="disabled"
     fi
     
     # Store CTID for cleanup
@@ -619,6 +783,8 @@ main() {
     echo "CPU Cores: $CORES"
     echo "MQTT Broker: $MQTT_IP"
     echo "Weather Coordinates: $WEATHER_LAT, $WEATHER_LON"
+    echo "Admin Username: $ADMIN_USERNAME"
+    echo "Email Alerts: $([ "$SENDGRID_CONFIG" = "disabled" ] && echo "Disabled" || echo "Enabled")"
     echo "App Source: GitHub Repository"
     echo "══════════════════════════════════════════════════════════════════════════"
     
@@ -645,7 +811,7 @@ main() {
     create_app_directory "$CTID"
     download_app_from_github "$CTID"
     install_app_dependencies "$CTID"
-    create_env_file "$CTID" "$MQTT_IP" "$WEATHER_LAT" "$WEATHER_LON" "$DEFAULT_PORT"
+    create_env_file "$CTID" "$MQTT_IP" "$WEATHER_LAT" "$WEATHER_LON" "$DEFAULT_PORT" "$ADMIN_USERNAME" "$ADMIN_PASSWORD" "$SENDGRID_CONFIG"
     
     # PM2 configuration
     configure_pm2 "$CTID"
@@ -665,8 +831,13 @@ main() {
     echo "  Status: Running"
     
     echo -e "\n${WHITE}Application Access:${NC}"
-    echo "  Dashboard URL: http://$container_ip:$DEFAULT_PORT"
-    echo "  API Endpoint: http://$container_ip:$DEFAULT_PORT/data"
+    echo "  Dashboard URL: https://$container_ip:$DEFAULT_PORT"
+    echo "  Login URL: https://$container_ip:$DEFAULT_PORT/login"
+    echo "  API Endpoint: https://$container_ip:$DEFAULT_PORT/data"
+    
+    echo -e "\n${WHITE}Login Credentials:${NC}"
+    echo "  Username: $ADMIN_USERNAME"
+    echo "  Password: $ADMIN_PASSWORD"
     
     echo -e "\n${WHITE}Management Commands:${NC}"
     echo "  View logs: pct exec $CTID -- pm2 logs solarassistant"
@@ -692,7 +863,10 @@ CPU Cores: $CORES
 MQTT Broker: $MQTT_IP
 Weather Coordinates: $WEATHER_LAT, $WEATHER_LON
 Application Directory: $APP_INSTALL_DIR
-Dashboard URL: http://$container_ip:$DEFAULT_PORT
+Dashboard URL: https://$container_ip:$DEFAULT_PORT
+Login URL: https://$container_ip:$DEFAULT_PORT/login
+Login Username: $ADMIN_USERNAME
+Login Password: $ADMIN_PASSWORD
 
 Management Commands:
 - View logs: pct exec $CTID -- pm2 logs solarassistant
