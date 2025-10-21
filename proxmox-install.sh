@@ -17,11 +17,34 @@
 #
 # Usage:
 #   ./proxmox-install.sh                    # Interactive mode (recommended)
+#   ./proxmox-install.sh --interactive     # Force interactive mode
 #   curl -fsSL https://raw.githubusercontent.com/crowninternet/solarassistant/master/proxmox-install.sh | bash
 #
 # ═══════════════════════════════════════════════════════════════════════════
 
 set -e  # Exit on any error
+
+# Handle command line arguments
+if [[ "$1" == "--help" ]] || [[ "$1" == "-h" ]]; then
+    echo "Proxmox SolarAssistant Installation Script v$SCRIPT_VERSION"
+    echo ""
+    echo "Usage:"
+    echo "  $0                    # Interactive mode (recommended)"
+    echo "  $0 --interactive      # Force interactive mode"
+    echo "  $0 --help            # Show this help"
+    echo ""
+    echo "Non-interactive mode (curl | bash):"
+    echo "  curl -fsSL https://raw.githubusercontent.com/crowninternet/solarassistant/master/proxmox-install.sh | bash"
+    echo ""
+    echo "Default configuration:"
+    echo "  Container ID: $DEFAULT_CTID"
+    echo "  Hostname: $DEFAULT_HOSTNAME"
+    echo "  Memory: ${DEFAULT_MEMORY}MB"
+    echo "  CPU Cores: $DEFAULT_CORES"
+    echo "  MQTT Broker: mqtt://$DEFAULT_MQTT_IP:1883"
+    echo "  Weather Coordinates: $DEFAULT_WEATHER_LAT, $DEFAULT_WEATHER_LON"
+    exit 0
+fi
 
 # ═══════════════════════════════════════════════════════════════════════════
 # CONFIGURATION & VARIABLES
@@ -538,8 +561,8 @@ main() {
     check_proxmox_version
     check_template
     
-    # Check if running interactively
-    if [[ -t 0 ]]; then
+    # Check for force interactive mode or if running interactively
+    if [[ "$1" == "--interactive" ]] || [[ "$1" == "-i" ]] || [[ -t 0 ]]; then
         # Interactive configuration
         echo -e "\n${WHITE}Container Configuration${NC}"
         echo "══════════════════════════════════════════════════════════════════════════"
