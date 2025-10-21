@@ -549,7 +549,7 @@ main() {
     check_template
     
     # Interactive configuration (unless environment variables are set)
-    if [[ -z "${CTID:-}" ]]; then
+    if [[ -z "${CTID:-}" ]] && [[ -t 0 ]]; then
         echo -e "\n${WHITE}Container Configuration${NC}"
         echo "══════════════════════════════════════════════════════════════════════════"
         
@@ -565,9 +565,10 @@ main() {
         CORES=${CORES:-$DEFAULT_CORES}
         
         log_info "Using environment variables for container configuration"
+        log_info "Container ID: $CTID, Hostname: $HOSTNAME, Memory: ${MEMORY}MB, Cores: $CORES"
     fi
     
-    if [[ -z "${MQTT_IP:-}" ]]; then
+    if [[ -z "${MQTT_IP:-}" ]] && [[ -t 0 ]]; then
         echo -e "\n${WHITE}Application Configuration${NC}"
         echo "══════════════════════════════════════════════════════════════════════════"
         
@@ -582,6 +583,7 @@ main() {
         APP_DIR=${APP_DIR:-$DEFAULT_APP_DIR}
         
         log_info "Using environment variables for application configuration"
+        log_info "MQTT IP: $MQTT_IP, Weather: $WEATHER_LAT,$WEATHER_LON, App Dir: $APP_DIR"
     fi
     
     # Store CTID for cleanup
@@ -599,10 +601,14 @@ main() {
     echo "App Directory: $APP_DIR"
     echo "══════════════════════════════════════════════════════════════════════════"
     
-    read -p "Proceed with installation? [Y/n]: " confirm
-    if [[ "$confirm" =~ ^[Nn]$ ]]; then
-        log_info "Installation cancelled by user"
-        exit 0
+    if [[ -t 0 ]]; then
+        read -p "Proceed with installation? [Y/n]: " confirm
+        if [[ "$confirm" =~ ^[Nn]$ ]]; then
+            log_info "Installation cancelled by user"
+            exit 0
+        fi
+    else
+        log_info "Non-interactive mode - proceeding with installation"
     fi
     
     # Container creation and setup
