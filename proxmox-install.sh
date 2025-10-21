@@ -527,20 +527,51 @@ main() {
     check_proxmox_version
     check_template
     
-    # Interactive configuration
-    echo -e "\n${WHITE}Container Configuration${NC}"
-    echo "══════════════════════════════════════════════════════════════════════════"
-    
-    CTID=$(prompt_ctid)
-    HOSTNAME=$(prompt_hostname)
-    MEMORY=$(prompt_memory)
-    CORES=$(prompt_cores)
-    
-    echo -e "\n${WHITE}Application Configuration${NC}"
-    echo "══════════════════════════════════════════════════════════════════════════"
-    
-    MQTT_IP=$(prompt_mqtt_ip)
-    read -r WEATHER_LAT WEATHER_LON <<< "$(prompt_weather_coords)"
+    # Check if running interactively
+    if [[ -t 0 ]]; then
+        # Interactive configuration
+        echo -e "\n${WHITE}Container Configuration${NC}"
+        echo "══════════════════════════════════════════════════════════════════════════"
+        
+        CTID=$(prompt_ctid)
+        HOSTNAME=$(prompt_hostname)
+        MEMORY=$(prompt_memory)
+        CORES=$(prompt_cores)
+        
+        echo -e "\n${WHITE}Application Configuration${NC}"
+        echo "══════════════════════════════════════════════════════════════════════════"
+        
+        MQTT_IP=$(prompt_mqtt_ip)
+        read -r WEATHER_LAT WEATHER_LON <<< "$(prompt_weather_coords)"
+    else
+        # Non-interactive mode - use defaults and show guidance
+        log_info "Non-interactive mode detected (curl | bash)"
+        echo -e "\n${YELLOW}══════════════════════════════════════════════════════════════════════════${NC}"
+        echo -e "${YELLOW}                    NON-INTERACTIVE MODE DETECTED${NC}"
+        echo -e "${YELLOW}══════════════════════════════════════════════════════════════════════════${NC}"
+        echo -e "\n${WHITE}Using default configuration:${NC}"
+        echo "  Container ID: $DEFAULT_CTID"
+        echo "  Hostname: $DEFAULT_HOSTNAME"
+        echo "  Memory: ${DEFAULT_MEMORY}MB"
+        echo "  CPU Cores: $DEFAULT_CORES"
+        echo "  MQTT Broker: $DEFAULT_MQTT_IP"
+        echo "  Weather Coordinates: $DEFAULT_WEATHER_LAT, $DEFAULT_WEATHER_LON"
+        echo -e "\n${CYAN}To customize these settings, download and run interactively:${NC}"
+        echo "  wget https://raw.githubusercontent.com/crowninternet/solarassistant/master/proxmox-install.sh"
+        echo "  chmod +x proxmox-install.sh"
+        echo "  ./proxmox-install.sh"
+        echo -e "\n${GREEN}Proceeding with default configuration...${NC}"
+        echo -e "${YELLOW}══════════════════════════════════════════════════════════════════════════${NC}\n"
+        
+        # Use defaults
+        CTID=$DEFAULT_CTID
+        HOSTNAME=$DEFAULT_HOSTNAME
+        MEMORY=$DEFAULT_MEMORY
+        CORES=$DEFAULT_CORES
+        MQTT_IP=$DEFAULT_MQTT_IP
+        WEATHER_LAT=$DEFAULT_WEATHER_LAT
+        WEATHER_LON=$DEFAULT_WEATHER_LON
+    fi
     
     # Store CTID for cleanup
     CREATED_CTID=$CTID
@@ -564,7 +595,7 @@ main() {
             exit 0
         fi
     else
-        log_info "Non-interactive mode - proceeding with installation"
+        log_info "Non-interactive mode - proceeding with installation automatically"
     fi
     
     # Container creation and setup
