@@ -4,7 +4,7 @@
 # PROXMOX 9.0 SOLARASSISTANT INSTALLATION SCRIPT
 # ═══════════════════════════════════════════════════════════════════════════
 # 
-# Version: 2.0.0
+# Version: 2.1.0
 # This script automates the deployment of the SolarAssistant Monitor
 # Node.js application in an LXC container on Proxmox VE 9.0.x
 #
@@ -12,6 +12,7 @@
 # - HTTPS with self-signed SSL certificates
 # - JWT Authentication with configurable credentials
 # - SendGrid Email Alerts configuration
+# - IFTTT Webhook integration for automated charger control
 # - Interactive and non-interactive installation modes
 # - Comprehensive error handling and logging
 #
@@ -370,12 +371,15 @@ prompt_auth_credentials() {
     echo "$username $password"
 }
 
-# Prompt for SendGrid configuration
+# Prompt for SendGrid and IFTTT configuration
 prompt_sendgrid_config() {
     local sendgrid_enabled=""
     local api_key=""
     local from_email=""
     local to_email=""
+    local ifttt_enabled=""
+    local ifttt_webhook_key=""
+    local plug_name=""
     
     while true; do
         read -p "Enable email alerts? [y/N]: " sendgrid_enabled
@@ -409,8 +413,40 @@ prompt_sendgrid_config() {
                 break
             done
             
-            echo "enabled $api_key $from_email $to_email"
-            return
+            # Ask about IFTTT integration
+            echo -e "\n${CYAN}IFTTT Integration (Optional)${NC}"
+            echo "IFTTT can automatically control battery chargers based on battery levels"
+            while true; do
+                read -p "Enable IFTTT charger control? [y/N]: " ifttt_enabled
+                ifttt_enabled=${ifttt_enabled:-n}
+                
+                if [[ "$ifttt_enabled" =~ ^[Yy]$ ]]; then
+                    while true; do
+                        read -p "IFTTT Webhook Key: " ifttt_webhook_key
+                        if [[ -z "$ifttt_webhook_key" ]]; then
+                            log_error "IFTTT Webhook Key is required for charger control"
+                            continue
+                        fi
+                        break
+                    done
+                    
+                    while true; do
+                        read -p "TP-Link Kasa plug name [Battery Charger]: " plug_name
+                        plug_name=${plug_name:-"Battery Charger"}
+                        if [[ -z "$plug_name" ]]; then
+                            log_error "Plug name cannot be empty"
+                            continue
+                        fi
+                        break
+                    done
+                    
+                    echo "enabled $api_key $from_email $to_email enabled $ifttt_webhook_key $plug_name"
+                    return
+                else
+                    echo "enabled $api_key $from_email $to_email disabled"
+                    return
+                fi
+            done
         else
             echo "disabled"
             return
@@ -590,14 +626,17 @@ create_env_file() {
         \"
     ")
     
-    # Parse SendGrid configuration
+    # Parse SendGrid and IFTTT configuration
     local sendgrid_enabled="false"
     local sendgrid_api_key=""
     local sendgrid_from_email=""
     local sendgrid_to_email=""
+    local ifttt_enabled="false"
+    local ifttt_webhook_key=""
+    local plug_name="Battery Charger"
     
     if [[ "$sendgrid_config" != "disabled" ]]; then
-        read -r sendgrid_enabled sendgrid_api_key sendgrid_from_email sendgrid_to_email <<< "$sendgrid_config"
+        read -r sendgrid_enabled sendgrid_api_key sendgrid_from_email sendgrid_to_email ifttt_enabled ifttt_webhook_key plug_name <<< "$sendgrid_config"
     fi
     
     pct exec "$ctid" -- bash -c "cat > $APP_INSTALL_DIR/.env << EOF
@@ -626,11 +665,11 @@ EOF"
   \"lowThreshold\": 50,
   \"highThreshold\": 80,
   \"chargerControl\": {
-    \"enabled\": false,
-    \"iftttWebhookKey\": \"\",
+    \"enabled\": $ifttt_enabled,
+    \"iftttWebhookKey\": \"$ifttt_webhook_key\",
     \"lowThreshold\": 45,
     \"highThreshold\": 85,
-    \"plugName\": \"Battery Charger\",
+    \"plugName\": \"$plug_name\",
     \"maxTemp\": 110,
     \"cooldownMinutes\": 5
   }
@@ -751,6 +790,7 @@ main() {
         echo "  Admin Username: admin"
         echo "  Admin Password: password"
         echo "  Email Alerts: Disabled"
+        echo "  IFTTT Integration: Disabled"
         echo -e "\n${CYAN}To customize these settings, download and run interactively:${NC}"
         echo "  wget https://raw.githubusercontent.com/crowninternet/solarassistant/master/proxmox-install.sh"
         echo "  chmod +x proxmox-install.sh"
@@ -785,6 +825,7 @@ main() {
     echo "Weather Coordinates: $WEATHER_LAT, $WEATHER_LON"
     echo "Admin Username: $ADMIN_USERNAME"
     echo "Email Alerts: $([ "$SENDGRID_CONFIG" = "disabled" ] && echo "Disabled" || echo "Enabled")"
+    echo "IFTTT Integration: $([ "$SENDGRID_CONFIG" = "disabled" ] && echo "Disabled" || echo "$(echo $SENDGRID_CONFIG | cut -d' ' -f5)")"
     echo "App Source: GitHub Repository"
     echo "══════════════════════════════════════════════════════════════════════════"
     
