@@ -45,7 +45,7 @@ DEFAULT_PORT="3434"
 DEFAULT_APP_DIR="/Users/jmahon/Documents/Battery"
 
 # Template and container settings
-DEBIAN_TEMPLATE="debian-12-standard_12.2-1_amd64.tar.zst"
+DEBIAN_TEMPLATE="debian-12-standard_12.12-1_amd64.tar.zst"
 CONTAINER_ROOTFS="local-lvm:8"
 APP_INSTALL_DIR="/opt/solarassistant"
 
