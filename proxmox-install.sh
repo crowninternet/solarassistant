@@ -38,7 +38,7 @@ DEFAULT_HOSTNAME="solarassistant"
 DEFAULT_MEMORY=2048
 DEFAULT_CORES=2
 DEFAULT_BRIDGE="vmbr0"
-DEFAULT_MQTT_IP="localhost"
+DEFAULT_MQTT_IP="192.168.1.228"
 DEFAULT_WEATHER_LAT="33.2487"  # Queen Creek, AZ (from app.js)
 DEFAULT_WEATHER_LON="-111.6343"
 DEFAULT_PORT="3434"
@@ -245,18 +245,29 @@ prompt_mqtt_ip() {
     local mqtt_ip=${MQTT_IP:-$DEFAULT_MQTT_IP}
     
     while true; do
-        read -p "MQTT broker IP address [$mqtt_ip]: " input_mqtt_ip
+        read -p "MQTT broker IP address or URL [$mqtt_ip]: " input_mqtt_ip
         mqtt_ip=${input_mqtt_ip:-$mqtt_ip}
         
-        if [[ ! "$mqtt_ip" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]] && [[ "$mqtt_ip" != "localhost" ]]; then
-            log_error "Please enter a valid IP address or 'localhost'"
+        # Handle both IP addresses and full MQTT URLs
+        if [[ "$mqtt_ip" =~ ^mqtt:// ]]; then
+            # Full MQTT URL provided - extract IP
+            local extracted_ip=$(echo "$mqtt_ip" | sed 's|mqtt://||' | cut -d: -f1)
+            if [[ "$extracted_ip" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+                echo "$mqtt_ip"
+                break
+            else
+                log_error "Invalid MQTT URL format. Please use: mqtt://192.168.1.100:1883"
+                continue
+            fi
+        elif [[ "$mqtt_ip" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]] || [[ "$mqtt_ip" == "localhost" ]]; then
+            # IP address provided - convert to MQTT URL
+            echo "mqtt://$mqtt_ip:1883"
+            break
+        else
+            log_error "Please enter a valid IP address (e.g., 192.168.1.100) or MQTT URL (e.g., mqtt://192.168.1.100:1883)"
             continue
         fi
-        
-        break
     done
-    
-    echo "$mqtt_ip"
 }
 
 # Prompt for weather coordinates
@@ -554,7 +565,7 @@ main() {
         echo "  Hostname: $DEFAULT_HOSTNAME"
         echo "  Memory: ${DEFAULT_MEMORY}MB"
         echo "  CPU Cores: $DEFAULT_CORES"
-        echo "  MQTT Broker: $DEFAULT_MQTT_IP"
+        echo "  MQTT Broker: mqtt://$DEFAULT_MQTT_IP:1883"
         echo "  Weather Coordinates: $DEFAULT_WEATHER_LAT, $DEFAULT_WEATHER_LON"
         echo -e "\n${CYAN}To customize these settings, download and run interactively:${NC}"
         echo "  wget https://raw.githubusercontent.com/crowninternet/solarassistant/master/proxmox-install.sh"
