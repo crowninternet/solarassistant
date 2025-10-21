@@ -9,7 +9,7 @@
 #
 # Features:
 # - Interactive configuration with sensible defaults
-# - LXC container creation with Debian 13 (Trixie)
+# - LXC container creation with Debian 12 (Bookworm)
 # - Node.js 18.x LTS installation
 # - PM2 process management
 # - Automatic startup configuration
@@ -45,7 +45,7 @@ DEFAULT_PORT="3434"
 DEFAULT_APP_DIR="/Users/jmahon/Documents/Battery"
 
 # Template and container settings
-DEBIAN_TEMPLATE="debian-13-standard_13.0-1_amd64.tar.zst"
+DEBIAN_TEMPLATE="debian-12-standard_12.2-1_amd64.tar.zst"
 CONTAINER_ROOTFS="local-lvm:8"
 APP_INSTALL_DIR="/opt/solarassistant"
 
@@ -105,7 +105,7 @@ check_proxmox_version() {
         exit 1
     fi
     
-    local pve_version=$(pveversion | grep -oE '[0-9]+\.[0-9]+')
+    local pve_version=$(pveversion | grep -oE '[0-9]+\.[0-9]+' | head -1)
     local major_version=$(echo "$pve_version" | cut -d. -f1)
     
     if [[ $major_version -lt 9 ]]; then
@@ -118,14 +118,23 @@ check_proxmox_version() {
 
 # Check if template exists
 check_template() {
-    log_info "Checking for Debian 13 template..."
+    log_info "Checking for Debian 12 template..."
     
-    if ! pveam available | grep -q "$DEBIAN_TEMPLATE"; then
-        log_warning "Debian 13 template not found. Downloading..."
-        pveam download local "$DEBIAN_TEMPLATE"
+    # Check if template exists in local storage
+    if ! pveam list local | grep -q "$DEBIAN_TEMPLATE"; then
+        log_warning "Debian 12 template not found. Downloading..."
+        
+        # Try to download the template
+        if ! pveam download local "$DEBIAN_TEMPLATE"; then
+            log_error "Failed to download template. Please check available templates with: pveam available"
+            log_info "Available templates:"
+            pveam available | grep debian
+            exit 1
+        fi
+        
         log_success "Template downloaded successfully"
     else
-        log_success "Debian 13 template found"
+        log_success "Debian 12 template found"
     fi
 }
 
