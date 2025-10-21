@@ -781,11 +781,13 @@ main() {
         MQTT_IP=$(prompt_mqtt_ip)
         read -r WEATHER_LAT WEATHER_LON <<< "$(prompt_weather_coords)"
         
+        echo -e "\n${GREEN}DEBUG: Weather coordinates completed successfully${NC}"
         echo -e "\n${WHITE}Authentication Configuration${NC}"
         echo "══════════════════════════════════════════════════════════════════════════"
         
         read -r ADMIN_USERNAME ADMIN_PASSWORD <<< "$(prompt_auth_credentials)"
         
+        echo -e "\n${GREEN}DEBUG: Authentication completed successfully${NC}"
         echo -e "\n${WHITE}Email Alerts Configuration${NC}"
         echo "══════════════════════════════════════════════════════════════════════════"
         
